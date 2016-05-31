@@ -279,8 +279,9 @@ function! s:sort_range(line1, line2) abort
   let lead = 0
 
   let prev = prevnonblank(a:line1 - 1)
-  if prev > 1
-    if indent(prev) == line_indent && getline(prev) !~# '^\s*#'
+  let prevtext = getline(prev)
+  if prev > 1 || prevtext =~# '^\s*\<\%(import\|from\)\>'
+    if indent(prev) == line_indent && prevtext !~# '^\s*#'
       let lead = 1
     endif
   endif
