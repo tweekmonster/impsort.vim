@@ -45,7 +45,7 @@ function! s:import_regions() abort
     let end = search(pattern, 'eW')
     let prev = prevnonblank(max([first_import, start - 1]))
 
-    if prev != last && last != first_import
+    if prev != last && join(getline(last_start, last), '') !~# '^\s*$'
       call add(blocks, [last_start, last])
       let last_start = start
     endif
