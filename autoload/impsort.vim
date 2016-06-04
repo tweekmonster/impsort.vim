@@ -29,7 +29,7 @@ function! s:import_regions() abort
   keepjumps normal! gg
   let pattern = '\_^\(\s*\)\<\%(import\|from\)\> .\+\_$\%(\1\_s\+\_^\s\+.\+\)*'
   let blocks = []
-  let last = prevnonblank(search(pattern, 'nW') - 1) + 1
+  let last = prevnonblank(search(pattern, 'ncW') - 1) + 1
   let first_import = last
   let last_start = last
   let guard = 0
@@ -173,18 +173,38 @@ function! s:_imp_sort_func(a, b) abort
 endfunction
 
 
+" TODO: Sorting is a big mess and needs refactoring
+
+function! s:_node_depth(node)
+  let depths = [1]
+  for key in keys(a:node)
+    if len(a:node[key])
+      call add(depths, s:_node_depth(a:node[key]) + 1)
+    endif
+  endfor
+  return max(depths)
+endfunction
+
+
 " Nested sort.  Imports are sorted by the parent path component.
 function! s:_nested_sort(node, prefix) abort
   let imports = []
+  let s:depth = s:_node_depth(a:node)
+  let s:prefix = a:prefix
 
-  for key in sort(keys(a:node), function('s:_imp_sort_func'))
+  for key in s:key_sort(keys(a:node))
     let prefix = (a:prefix != '' ? a:prefix.'.' : '').key
     if len(a:node[key])
-      call extend(imports, s:_imp_sort(a:node[key], prefix))
+      let old_depth = s:depth
+      call extend(imports, s:_nested_sort(a:node[key], prefix))
+      let s:depth = old_depth
+      let s:prefix = a:prefix
     else
       call add(imports, prefix)
     endif
   endfor
+
+  unlet s:depth
   return imports
 endfunction
 
@@ -205,19 +225,28 @@ function! s:nested_sort(imports) abort
       let inode = inode[node]
     endfor
   endfor
-  return s:_imp_sort(imp_tree, '')
+  return s:_nested_sort(imp_tree, '')
 endfunction
 
 
 " Construct a sort key for the import.
 function! s:_imp_key(import) abort
-  let dots = s:path_depth(a:import)
+  if exists('s:depth')
+    let dots = s:depth
+  else
+    let dots = s:path_depth(a:import)
+  endif
+
+  let import = (exists('s:prefix') ? s:prefix.'.' : '').a:import
+  let length = len(import)
   if a:import =~ '^\.\+'
     let module = a:import
   else
     let module = split(a:import, '\.')[0]
+    let length += 100
   endif
-  return printf('%s.%02d.%s', module, dots, a:import)
+  let key = printf('%03d_%.1s_%02d_%s', length, module, dots, import)
+  return key
 endfunction
 
 
@@ -241,7 +270,7 @@ function! s:key_sort(imports) abort
   for imp in a:imports
     let s:max_depth = max([s:max_depth, s:path_depth(imp)])
   endfor
-  return sort(a:imports, function('s:_key_sort'))
+  return sort(a:imports, 's:_key_sort')
 endfunction
 
 
@@ -320,7 +349,7 @@ function! s:sort_range(line1, line2) abort
   endif
 
   for placement in placements
-    for import in s:key_sort(imports[placement]['import'])
+    for import in s:nested_sort(imports[placement]['import'])
       call add(import_lines, prefix.'import '.import)
     endfor
 
@@ -328,7 +357,7 @@ function! s:sort_range(line1, line2) abort
       call add(import_lines, '')
     endif
 
-    for import in s:key_sort(keys(imports[placement]['from']))
+    for import in s:nested_sort(keys(imports[placement]['from']))
       let from_line = prefix.'from '.import.' import '
       let from_imports = join(sort(imports[placement]['from'][import]), ', ')
       let from_line .= s:wrap_imports(from_imports, len(from_line))
