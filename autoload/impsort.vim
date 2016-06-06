@@ -310,7 +310,7 @@ function! s:sort_range(line1, line2) abort
   let prev = prevnonblank(a:line1 - 1)
   let prevtext = getline(prev)
   if prev > 1 || prevtext =~# '^\s*\<\%(import\|from\)\>'
-    if indent(prev) == line_indent && prevtext !~# '^\s*#'
+    if indent(prev) == line_indent && prevtext !~# '^\s*#\|\%(''''''\|"""\)$'
       let lead = 1
     endif
   endif
@@ -368,6 +368,10 @@ function! s:sort_range(line1, line2) abort
       call add(import_lines, '')
     endif
   endfor
+
+  if len(import_lines) && getline(nextnonblank(a:line2 + 1)) =~# '^except ImportError'
+    let import_lines = import_lines[:-2]
+  endif
 
   silent execute a:line1.','.a:line2.'delete _'
   call append(a:line1 - 1, import_lines)
