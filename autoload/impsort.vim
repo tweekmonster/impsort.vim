@@ -96,7 +96,7 @@ endfunction
 " Parse import lines into module strings.
 function! s:parse_imports(imports) abort
   let i = 0
-  let l = len(a:imports) - 1
+  let l = len(a:imports)
   let imps = []
 
   while i < l
