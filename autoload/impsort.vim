@@ -194,13 +194,12 @@ function! s:_nested_sort(node, prefix) abort
 
   for key in s:key_sort(keys(a:node))
     let prefix = (a:prefix != '' ? a:prefix.'.' : '').key
+    call add(imports, prefix)
     if len(a:node[key])
       let old_depth = s:depth
       call extend(imports, s:_nested_sort(a:node[key], prefix))
       let s:depth = old_depth
       let s:prefix = a:prefix
-    else
-      call add(imports, prefix)
     endif
   endfor
 
@@ -358,6 +357,9 @@ function! s:sort_range(line1, line2) abort
     endif
 
     for import in s:nested_sort(keys(imports[placement]['from']))
+      if !has_key(imports[placement]['from'], import)
+        continue
+      endif
       let from_line = prefix.'from '.import.' import '
       let from_imports = join(sort(imports[placement]['from'][import]), ', ')
       let from_line .= s:wrap_imports(from_imports, len(from_line))
