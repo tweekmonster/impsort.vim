@@ -346,6 +346,7 @@ function! impsort#sort(line1, line2) abort
   endif
 
   let saved = winsaveview()
+
   if a:line2 > a:line1
     let r1 = s:prevline(a:line1)
     let r2 = s:nextline(a:line2)
@@ -355,8 +356,13 @@ function! impsort#sort(line1, line2) abort
     for r in s:import_regions()
       let r1 = s:prevline(r[0] - offset)
       let r2 = s:nextline(r[1] - offset)
-      let offset += s:sort_range(r1, r2)
+      let change = s:sort_range(r1, r2)
+      let offset += change
+      if saved.lnum > r2
+        let saved.lnum -= change
+      endif
     endfor
   endif
-  cal winrestview(saved)
+
+  call winrestview(saved)
 endfunction
