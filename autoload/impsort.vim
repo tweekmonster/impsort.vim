@@ -371,13 +371,28 @@ function! s:sort_range(line1, line2) abort
     endif
   endfor
 
-  if len(import_lines) && getline(nextnonblank(a:line2 + 1)) =~# '^except ImportError'
+  let nextline = nextnonblank(a:line2 + 1)
+  if len(import_lines) && (!nextline || getline(nextline) =~# '^except ImportError')
     let import_lines = import_lines[:-2]
   endif
 
   silent execute a:line1.','.a:line2.'delete _'
   call append(a:line1 - 1, import_lines)
   return a:line2 - (a:line1 + len(import_lines) - 1)
+endfunction
+
+
+function! s:prevline(lnum) abort
+  return prevnonblank(a:lnum - 1) + 1
+endfunction
+
+
+function! s:nextline(lnum) abort
+  let lnum = nextnonblank(a:lnum + 1)
+  if !lnum
+    return line('$')
+  endif
+  return lnum - 1
 endfunction
 
 
@@ -392,16 +407,14 @@ function! impsort#sort(line1, line2) abort
 
   let saved = winsaveview()
   if a:line2 > a:line1
-    let r1 = prevnonblank(a:line1 - 1) + 1
-    let r2 = nextnonblank(a:line2 + 1) - 1
+    let r1 = s:prevline(a:line1)
+    let r2 = s:nextline(a:line2)
     call s:sort_range(r1, r2)
   else
     let offset = 0
     for r in s:import_regions()
-      let r1 = r[0] - offset
-      let r2 = r[1] - offset
-      let r1 = prevnonblank(r1 - 1) + 1
-      let r2 = nextnonblank(r2 + 1) - 1
+      let r1 = s:prevline(r[0] - offset)
+      let r2 = s:nextline(r[1] - offset)
       let offset += s:sort_range(r1, r2)
     endfor
   endif
