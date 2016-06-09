@@ -316,8 +316,13 @@ function! s:sort_range(line1, line2) abort
     let import_lines = import_lines[:-2]
   endif
 
-  silent execute a:line1.','.a:line2.'delete _'
-  call append(a:line1 - 1, import_lines)
+  let existing = getline(a:line1, a:line2)
+  if string(existing) != string(import_lines)
+    " Only update if it changes something
+    silent execute a:line1.','.a:line2.'delete _'
+    call append(a:line1 - 1, import_lines)
+  endif
+
   return a:line2 - (a:line1 + len(import_lines) - 1)
 endfunction
 
