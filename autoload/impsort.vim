@@ -153,123 +153,63 @@ function! s:path_depth(import) abort
 endfunction
 
 
-" Sort by length, then alphabetic.
-function! s:_imp_sort_func(a, b) abort
-  let al = len(a:a)
-  let bl = len(a:b)
-  if al < bl
-    return -1
-  elseif al > bl
+function! s:_length_cmp(a, b) abort
+  let a_len = len(a:a)
+  let b_len = len(a:b)
+  if a_len > b_len
     return 1
+  elseif a_len < b_len
+    return -1
+  endif
+  return 0
+endfunction
+
+
+function! s:_module_cmp(a, b) abort
+  let a_depth = s:path_depth(a:a)
+  let b_depth = s:path_depth(a:b)
+
+  if a_depth > b_depth
+    return 1
+  elseif a_depth < b_depth
+    return -1
   endif
 
-  if a:a < a:b
-    return -1
-  elseif a:a > a:b
+  let s = s:_length_cmp(a:a, a:b)
+  if s != 0
+    return s
+  endif
+
+  if a:a > a:b
     return 1
+  elseif a:a < a:b
+    return -1
   endif
 
   return 0
 endfunction
 
-
-" TODO: Sorting is a big mess and needs refactoring
-
-function! s:_node_depth(node)
-  let depths = [1]
-  for key in keys(a:node)
-    if len(a:node[key])
-      call add(depths, s:_node_depth(a:node[key]) + 1)
-    endif
-  endfor
-  return max(depths)
-endfunction
-
-
-" Nested sort.  Imports are sorted by the parent path component.
-function! s:_nested_sort(node, prefix) abort
-  let imports = []
-  let s:depth = s:_node_depth(a:node)
-  let s:prefix = a:prefix
-
-  for key in s:key_sort(keys(a:node))
-    let prefix = (a:prefix != '' ? a:prefix.'.' : '').key
-    call add(imports, prefix)
-    if len(a:node[key])
-      let old_depth = s:depth
-      call extend(imports, s:_nested_sort(a:node[key], prefix))
-      let s:depth = old_depth
-      let s:prefix = a:prefix
-    endif
-  endfor
-
-  unlet s:depth
-  return imports
-endfunction
-
-
-function! s:nested_sort(imports) abort
-  let imp_tree = {}
+" Sort
+" 1. By first module component length
+" 2. By module depth, then length, then alphabetically
+function! s:sort_imports(imports) abort
+  let groups = {}
   for imp in a:imports
-    let inode = imp_tree
-    if imp =~ '^\.\+'
-      let nodes = [imp]
-    else
-      let nodes = split(imp, '\.')
+    let groupname = matchstr(imp, '^\.\?[^\.]*\ze')
+    let remainder = matchstr(imp, '^\.\?[^\.]*\zs.*')
+    if !has_key(groups, groupname)
+      let groups[groupname] = []
     endif
-    for node in nodes
-      if !has_key(inode, node)
-        let inode[node] = {}
-      endif
-      let inode = inode[node]
-    endfor
+    call add(groups[groupname], remainder)
   endfor
-  return s:_nested_sort(imp_tree, '')
-endfunction
 
-
-" Construct a sort key for the import.
-function! s:_imp_key(import) abort
-  if exists('s:depth')
-    let dots = s:depth
-  else
-    let dots = s:path_depth(a:import)
-  endif
-
-  let import = (exists('s:prefix') ? s:prefix.'.' : '').a:import
-  let length = len(import)
-  if a:import =~ '^\.\+'
-    let module = a:import
-  else
-    let module = split(a:import, '\.')[0]
-    let length += 100
-  endif
-  let key = printf('%03d_%.1s_%02d_%s', length, module, dots, import)
-  return key
-endfunction
-
-
-" Key sort constructs a key to sort on.  The constructed key should be user
-" configurable.
-function! s:_key_sort(a, b) abort
-  let akey = s:_imp_key(a:a)
-  let bkey = s:_imp_key(a:b)
-  if akey < bkey
-    return -1
-  elseif akey > bkey
-    return 1
-  endif
-
-  return 0
-endfunction
-
-
-function! s:key_sort(imports) abort
-  let s:max_depth = 0
-  for imp in a:imports
-    let s:max_depth = max([s:max_depth, s:path_depth(imp)])
+  let out = []
+  for groupname in sort(keys(groups), 's:_length_cmp')
+    let import_group = map(copy(groups[groupname]), 'groupname . v:val')
+    call extend(out, sort(import_group, 's:_module_cmp'))
   endfor
-  return sort(a:imports, 's:_key_sort')
+
+  return out
 endfunction
 
 
@@ -348,7 +288,7 @@ function! s:sort_range(line1, line2) abort
   endif
 
   for placement in placements
-    for import in s:nested_sort(imports[placement]['import'])
+    for import in s:sort_imports(imports[placement]['import'])
       call add(import_lines, prefix.'import '.import)
     endfor
 
@@ -356,7 +296,7 @@ function! s:sort_range(line1, line2) abort
       call add(import_lines, '')
     endif
 
-    for import in s:nested_sort(keys(imports[placement]['from']))
+    for import in s:sort_imports(keys(imports[placement]['from']))
       if !has_key(imports[placement]['from'], import)
         continue
       endif
