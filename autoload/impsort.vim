@@ -220,6 +220,11 @@ function! s:wrap_imports(imports, width) abort
     return a:imports
   endif
 
+  let imports = split(a:imports, ',\zs ')
+  if len(imports) < 2
+    return a:imports
+  endif
+
   let out = '('
   let remainder += 1
   let l = 1
