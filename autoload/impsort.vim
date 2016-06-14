@@ -228,9 +228,9 @@ function! s:wrap_imports(imports, width) abort
   let out = '('
   let remainder += 1
   let l = 1
-  for import in split(a:imports, ' ')
+  for import in imports
     let l1 = len(import) + 1
-    if l + l1 > remainder
+    if l > 1 && l + l1 > remainder
       let out = out[:-2]
       let out .= "\n".repeat(' ', a:width + 1)
       let l = 0
