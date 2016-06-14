@@ -317,8 +317,13 @@ function! s:sort_range(line1, line2) abort
   endfor
 
   let nextline = nextnonblank(a:line2 + 1)
-  if len(import_lines) && (!nextline || getline(nextline) =~# '^except ImportError')
-    let import_lines = import_lines[:-2]
+  if len(import_lines)
+    let text = getline(nextline)
+    if !nextline || text =~# '^except ImportError'
+      let import_lines = import_lines[:-2]
+    elseif text =~# '^\s*\%(def\|class\)\>'
+      call add(import_lines, '')
+    endif
   endif
 
   let existing = getline(a:line1, a:line2)
