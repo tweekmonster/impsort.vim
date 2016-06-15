@@ -161,6 +161,13 @@ function! s:_length_cmp(a, b) abort
   elseif a_len < b_len
     return -1
   endif
+
+  if a:a > a:b
+    return 1
+  elseif a:a < a:b
+    return -1
+  endif
+
   return 0
 endfunction
 
@@ -178,12 +185,6 @@ function! s:_module_cmp(a, b) abort
   let s = s:_length_cmp(a:a, a:b)
   if s != 0
     return s
-  endif
-
-  if a:a > a:b
-    return 1
-  elseif a:a < a:b
-    return -1
   endif
 
   return 0
