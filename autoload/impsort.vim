@@ -190,14 +190,29 @@ function! s:_module_cmp(a, b) abort
   return 0
 endfunction
 
+
+function! s:_group_cmp(a, b) abort
+  " relative imports always goes to the bottom
+  if get(g:, 'impsort_relative_last', 0)
+    if a:a ==# '.'
+      return 1
+    elseif a:b ==# '.'
+      return -1
+    endif
+  endif
+
+  return s:_length_cmp(a:a, a:b)
+endfunction
+
+
 " Sort
 " 1. By first module component length
 " 2. By module depth, then length, then alphabetically
-function! s:sort_imports(imports) abort
+function! s:sort_imports(imports, group_space) abort
   let groups = {}
   for imp in a:imports
-    let groupname = matchstr(imp, '^\.\?[^\.]*\ze')
-    let remainder = matchstr(imp, '^\.\?[^\.]*\zs.*')
+    let groupname = matchstr(imp, '^\%(\.\|[^\.]*\)\ze')
+    let remainder = matchstr(imp, '^\%(\.\|[^\.]*\)\zs.*')
     if !has_key(groups, groupname)
       let groups[groupname] = []
     endif
@@ -205,9 +220,30 @@ function! s:sort_imports(imports) abort
   endfor
 
   let out = []
+
+  " Group the single line imports together
+  let singles = []
   for groupname in sort(keys(groups), 's:_length_cmp')
-    let import_group = map(copy(groups[groupname]), 'groupname . v:val')
+    if len(groups[groupname]) == 1
+      call extend(singles, map(copy(groups[groupname]), 'groupname . v:val'))
+      call remove(groups, groupname)
+    endif
+  endfor
+
+  if !empty(singles)
+    let groups['__'] = singles
+  endif
+
+  for groupname in sort(keys(groups), 's:_group_cmp')
+    let groupimports = copy(groups[groupname])
+    if groupname == '__'
+      let groupname = ''
+    endif
+    let import_group = map(groupimports, 'groupname . v:val')
     call extend(out, sort(import_group, 's:_module_cmp'))
+    if a:group_space
+      call add(out, '')
+    endif
   endfor
 
   return out
@@ -294,16 +330,23 @@ function! s:sort_range(line1, line2) abort
   endif
 
   for placement in placements
-    for import in s:sort_imports(imports[placement]['import'])
+    for import in s:sort_imports(imports[placement]['import'], 0)
+      if import == ''
+        call add(import_lines, '')
+        continue
+      endif
       call add(import_lines, prefix.'import '.import)
     endfor
 
-    if len(imports[placement]['import'])
+    if len(imports[placement]['import']) && import_lines[-1] != ''
       call add(import_lines, '')
     endif
 
-    for import in s:sort_imports(keys(imports[placement]['from']))
+    for import in s:sort_imports(keys(imports[placement]['from']), s:separate_groups)
       if !has_key(imports[placement]['from'], import)
+        if import == ''
+          call add(import_lines, '')
+        endif
         continue
       endif
       let from_line = prefix.'from '.import.' import '
@@ -312,7 +355,7 @@ function! s:sort_range(line1, line2) abort
       call extend(import_lines, split(from_line, "\n"))
     endfor
 
-    if len(imports[placement]['from'])
+    if len(imports[placement]['from']) && import_lines[-1] != ''
       call add(import_lines, '')
     endif
   endfor
@@ -353,7 +396,7 @@ endfunction
 
 
 " Sort entry point
-function! impsort#sort(line1, line2) abort
+function! impsort#sort(line1, line2, separate_groups) abort
   if &l:filetype !~# 'python'
     echohl ErrorMsg
     echo 'Buffer is not Python'
@@ -361,6 +404,7 @@ function! impsort#sort(line1, line2) abort
     return
   endif
 
+  let s:separate_groups = a:separate_groups
   let saved = winsaveview()
 
   if a:line2 > a:line1
