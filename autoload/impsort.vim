@@ -1,4 +1,7 @@
 let s:path_script = expand('<sfile>:p:h:h').'/bin/pyinfo.py'
+let s:impsort_method_group = ['length', 'alpha']
+let s:impsort_method_module = ['depth', 'length', 'alpha']
+let s:impsort_method_import = ['length', 'alpha']
 
 
 " Call the python script to get the environment python interpreter's info.
@@ -147,21 +150,29 @@ function! s:placement(import) abort
 endfunction
 
 
+" Convenience function for keeping a match at the top
+function! impsort#sort_top(pattern, a, b) abort
+  if a:a =~# a:pattern && a:b =~# a:pattern
+    return 0
+  endif
+
+  if a:a =~# a:pattern
+    return -1
+  elseif a:b =~# a:pattern
+    return 1
+  endif
+
+  return 0
+endfunction
+
+
 " Get the depth of the import path
 function! s:path_depth(import) abort
   return len(substitute(a:import, '\%(\_^\.\+\|[^\.]\)\+\.\?', 'x', 'g'))
 endfunction
 
 
-function! s:_length_cmp(a, b) abort
-  let a_len = len(a:a)
-  let b_len = len(a:b)
-  if a_len > b_len
-    return 1
-  elseif a_len < b_len
-    return -1
-  endif
-
+function! s:__alpha_cmp(a, b) abort
   if a:a > a:b
     return 1
   elseif a:a < a:b
@@ -172,7 +183,7 @@ function! s:_length_cmp(a, b) abort
 endfunction
 
 
-function! s:_module_cmp(a, b) abort
+function! s:__depth_cmp(a, b) abort
   let a_depth = s:path_depth(a:a)
   let b_depth = s:path_depth(a:b)
 
@@ -182,9 +193,17 @@ function! s:_module_cmp(a, b) abort
     return -1
   endif
 
-  let s = s:_length_cmp(a:a, a:b)
-  if s != 0
-    return s
+  return 0
+endfunction
+
+
+function! s:__length_cmp(a, b) abort
+  let a_len = len(a:a)
+  let b_len = len(a:b)
+  if a_len > b_len
+    return 1
+  elseif a_len < b_len
+    return -1
   endif
 
   return 0
@@ -193,21 +212,50 @@ endfunction
 
 function! s:_group_cmp(a, b) abort
   " relative imports always goes to the bottom
-  if get(g:, 'impsort_relative_last', 0)
-    if a:a ==# '.'
-      return 1
-    elseif a:b ==# '.'
-      return -1
-    endif
+  let order = impsort#sort_top('^\.', a:a, a:b)
+        \ * (get(g:, 'impsort_relative_last', 0) ? -1 : 1)
+  if order
+    return order
   endif
-
-  return s:_length_cmp(a:a, a:b)
+  return impsort#sort_top('^__$', a:a, a:b)
 endfunction
 
 
-" Sort
-" 1. By first module component length
-" 2. By module depth, then length, then alphabetically
+function! s:_sort(a, b) abort
+  let args = [a:a, a:b]
+  for s:_sfunc in s:_sort_methods
+    let order = call(s:_sfunc, args)
+    if order != 0
+      return order
+    endif
+  endfor
+  return 0
+endfunction
+
+
+function! s:sort(obj, methods) abort
+  let s:_sort_methods = a:methods
+  return sort(copy(a:obj), 's:_sort')
+endfunction
+
+
+function! s:get_method(name) abort
+  let method = get(b:, 'impsort_method_'.a:name,
+        \ get(g:, 'impsort_method_'.a:name,
+        \ get(s:, 'impsort_method_'.a:name, ['length', 'alpha'])))
+  let funcs = []
+  for i in range(len(method))
+    " Not using for...in to avoid type mismatch error
+    if type(method[i]) == 2
+      call add(funcs, method[i])
+    else
+      call add(funcs, function('s:__'.method[i].'_cmp'))
+    endif
+  endfor
+  return funcs
+endfunction
+
+
 function! s:sort_imports(imports, group_space) abort
   let groups = {}
   for imp in a:imports
@@ -220,10 +268,11 @@ function! s:sort_imports(imports, group_space) abort
   endfor
 
   let out = []
+  let group_sort = s:get_method('group')
 
   " Group the single line imports together
   let singles = []
-  for groupname in sort(keys(groups), 's:_length_cmp')
+  for groupname in s:sort(keys(groups), group_sort)
     if len(groups[groupname]) == 1
       call extend(singles, map(copy(groups[groupname]), 'groupname . v:val'))
       call remove(groups, groupname)
@@ -234,13 +283,14 @@ function! s:sort_imports(imports, group_space) abort
     let groups['__'] = singles
   endif
 
-  for groupname in sort(keys(groups), 's:_group_cmp')
+  " s:_group_cmp is always first to arrange the relative imports
+  for groupname in s:sort(keys(groups), [function('s:_group_cmp')] + group_sort)
     let groupimports = copy(groups[groupname])
     if groupname == '__'
       let groupname = ''
     endif
     let import_group = map(groupimports, 'groupname . v:val')
-    call extend(out, sort(import_group, 's:_module_cmp'))
+    call extend(out, s:sort(import_group, s:get_method('module')))
     if a:group_space
       call add(out, '')
     endif
@@ -291,7 +341,8 @@ function! s:sort_range(line1, line2) abort
   let prev = prevnonblank(a:line1 - 1)
   let prevtext = getline(prev)
   if prev > 1 || prevtext =~# '^\s*\<\%(import\|from\)\>'
-    if indent(prev) > line_indent || (indent(prev) == line_indent && prevtext !~# '^\s*#\|\%(''''''\|"""\)$')
+    if indent(prev) > line_indent || (indent(prev) == line_indent
+          \ && prevtext !~# '^\s*#\|\%(''''''\|"""\)$')
       let lead = 1
     endif
   endif
@@ -342,7 +393,8 @@ function! s:sort_range(line1, line2) abort
       call add(import_lines, '')
     endif
 
-    for import in s:sort_imports(keys(imports[placement]['from']), s:separate_groups)
+    for import in s:sort_imports(keys(imports[placement]['from']),
+          \ s:separate_groups)
       if !has_key(imports[placement]['from'], import)
         if import == ''
           call add(import_lines, '')
@@ -350,7 +402,8 @@ function! s:sort_range(line1, line2) abort
         continue
       endif
       let from_line = prefix.'from '.import.' import '
-      let from_imports = join(sort(imports[placement]['from'][import]), ', ')
+      let from_imports = join(s:sort(imports[placement]['from'][import],
+            \ s:get_method('imports')), ', ')
       let from_line .= s:wrap_imports(from_imports, len(from_line))
       call extend(import_lines, split(from_line, "\n"))
     endfor
