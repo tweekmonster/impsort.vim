@@ -34,6 +34,37 @@ COMMAND                                                       *impsort-command*
 			Map it to your favorite key or run it in the command
 			line yourself.  Endless possibilities!
 
+						*:ImpSortAuto* *:ImpSortAuto!*
+:ImpSortAuto[!]		Enables automatic sorting in the current buffer.
+			Import sorting is performed after |InsertLeave| if the
+			cursor is within an import region.  [!] has the same
+			effect as in |:ImpSort!|.  After leaving insert mode
+			and sorting, an attempt is made to put your cursor
+			back on the word you left on.
+
+			If called while automatic sorting is active, it will
+			disable it instead.
+
+			This is a fairly broad thing to enable, which is why
+			it's per-buffer only.  A utility function
+			*impsort#is_sorted()* is available to help you decide
+			how and when to enable automatic sorting.
+
+			An example script you would create in
+			`after/ftplugin/python.vim`:
+>
+			if impsort#is_sorted()
+			  ImpSortAuto!
+			endif
+<
+			This script will check to see if the current python
+			file's imports are already sorted before enabling
+			automatic sort.  It's simple, but the ramifications of
+			enabling this may not be clear to some users who just
+			blindly enable options.  If this is something you want
+			to enable on all python files, you will have to
+			deliberately enable it yourself.
+
 
 ==============================================================================
 CONFIG                                                         *impsort-config*

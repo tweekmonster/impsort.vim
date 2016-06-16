@@ -331,7 +331,7 @@ endfunction
 
 
 " Sort the imports in a line range.  This will remove non-import lines.
-function! s:sort_range(line1, line2) abort
+function! s:_sort_range(line1, line2) abort
   call s:init()
 
   let line_indent = indent(nextnonblank(a:line1))
@@ -423,6 +423,12 @@ function! s:sort_range(line1, line2) abort
     endif
   endif
 
+  return import_lines
+endfunction
+
+
+function! s:sort_range(line1, line2) abort
+  let import_lines = s:_sort_range(a:line1, a:line2)
   let existing = getline(a:line1, a:line2)
   if string(existing) != string(import_lines)
     " Only update if it changes something
@@ -463,7 +469,10 @@ function! impsort#sort(line1, line2, separate_groups) abort
   if a:line2 > a:line1
     let r1 = s:prevline(a:line1)
     let r2 = s:nextline(a:line2)
-    call s:sort_range(r1, r2)
+    let change = s:sort_range(r1, r2)
+    if saved.lnum > r2
+      let saved.lnum -= change
+    endif
   else
     let offset = 0
     for r in s:import_regions()
@@ -478,4 +487,101 @@ function! impsort#sort(line1, line2, separate_groups) abort
   endif
 
   call winrestview(saved)
+endfunction
+
+
+function! impsort#is_sorted() abort
+  let s:separate_groups = 0
+
+  for r in s:import_regions()
+    let r1 = s:prevline(r[0])
+    let r2 = s:nextline(r[1])
+    let cur_lines = filter(getline(r1, r2), '!empty(v:val)')
+    let import_lines = filter(s:_sort_range(r1, r2), '!empty(v:val)')
+
+    if string(cur_lines) != string(import_lines)
+      return 0
+    endif
+  endfor
+
+  return 1
+endfunction
+
+
+function! s:auto_sort(separate_groups)
+  if !exists('b:_impsort_auto') || !b:_impsort_auto
+    return
+  endif
+
+  unlet! b:_impsort_auto
+
+  " Variables for cursor positioning sorcery
+  let start_line = 0
+  let l = line('.')
+  let c = col('.')
+  let impline = search('^\s*\%(import\|from\)\>', 'ncbW')
+  let cword = expand('<cword>')
+  let module = matchstr(getline(impline), '^\s*\zs\%(import\|from\)\s\+\S\+')
+
+  if !empty(module)
+    let module = substitute(module, '\s\+', ' ', 'g')
+  endif
+
+  for r in s:import_regions()
+    let r1 = s:prevline(r[0])
+    let r2 = s:nextline(r[1])
+    if r1 <= l && r2 >= l
+      let start_line = r1
+      call impsort#sort(r[0], r[1], a:separate_groups)
+      break
+    endif
+  endfor
+
+  " Try to restore the cursor to a place the user might expect it to be
+  if start_line && !empty(module)
+    let word_pos = [0, 0]
+    let view = winsaveview()
+    call cursor(start_line, 1)
+    let [restore_line, restore_col] = searchpos('^\s*'.module, 'ceW')
+    if restore_line
+      let stop_line = restore_line
+
+      call cursor(restore_line, col('$'))
+      let next_import = search('^\s*\%(import\|from\)\>', 'nW', restore_line + 5)
+      if next_import
+        let stop_line = next_import - 1
+      endif
+
+      " This will be good enough for `import` and if there's no cword
+      let word_pos = [restore_line, restore_col]
+      call cursor(restore_line, restore_col)
+
+      if !empty(cword)
+        let pos = searchpos('\<'.cword.'\>', 'eW', stop_line)
+        if pos[0]
+          let word_pos = pos
+        endif
+      endif
+    endif
+    call winrestview(view)
+
+    if word_pos[0]
+      call cursor(word_pos[0], word_pos[1] - 1)
+    endif
+  endif
+endfunction
+
+
+function! impsort#auto(separate_groups) abort
+  if exists('#impsort#InsertLeave#<buffer>')
+    autocmd! impsort * <buffer>
+    echohl WarningMsg
+    echomsg 'Auto ImpSort disabled'
+    echohl None
+  else
+    augroup impsort
+      autocmd! TextChangedI <buffer> let b:_impsort_auto = 1
+      execute 'autocmd! InsertLeave <buffer> call s:auto_sort('.a:separate_groups.')'
+    augroup END
+  endif
 endfunction

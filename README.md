@@ -11,7 +11,7 @@ Any modern plugin manager will work.
 ## Usage
 
 ```vim
-:ImpSort
+:ImpSort[!]
 ```
 
 The `:ImpSort` command accepts a range and can be used with visual selections.
@@ -32,14 +32,18 @@ nnoremap <leader>is :<c-u>ImpSort!<cr>
 
 The sorting method is configurable.  Be sure to read [`:h impsort`](doc/impsort.txt)!
 
+There is another command `:ImpSortAuto` which will automatically sort imports
+on `InsertLeave`.  **Definitely** read [`:h impsort`](doc/impsort.txt) if this
+interests you.
+
 ## Rationale
 
-I wanted to be able to keep my import lines organized, but I didn't want to
-spend the time to sort it by hand.  Using this plugin, you can add a new import
-and let the sort do its thing.
+I wanted to be able to keep my import lines organized, but didn't want to spend
+the time sorting them by hand.  Using this plugin, you can add a new import and
+let the sort do its thing.
 
-I also wanted a more forgiving than [isort][].  This plugin will not move
-imports out of their original placement in the script.  For example:
+I also wanted something more forgiving than [isort][].  This plugin will not
+move imports out of their original placement in the script.  For example:
 
 ```python
 import sys
