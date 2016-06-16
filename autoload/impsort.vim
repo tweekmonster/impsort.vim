@@ -1,4 +1,5 @@
 let s:path_script = expand('<sfile>:p:h:h').'/bin/pyinfo.py'
+let s:placements = ['hoist', 'internal', 'external', 'project']
 let s:impsort_method_group = ['length', 'alpha']
 let s:impsort_method_module = ['depth', 'length', 'alpha']
 let s:impsort_method_import = ['length', 'alpha']
@@ -330,6 +331,41 @@ function! s:wrap_imports(imports, width) abort
 endfunction
 
 
+function! impsort#get_imports(line1, line2) abort
+  let imports = {}
+
+  for placement in s:placements
+    let imports[placement] = {'import': [], 'from': {}}
+  endfor
+
+  for imp in s:normalize_imports(a:line1, a:line2)
+    if imp =~# '^import '
+      for import in s:parse_imports(s:trim(imp[6:]))
+        let placement = s:placement(import)
+        call add(imports[placement]['import'], import)
+      endfor
+    elseif imp =~# '^from '
+      let parts = split(imp[4:], '\<import\>')
+      if len(parts) != 2
+        continue
+      endif
+      let module = s:trim(parts[0])
+      let placement = s:placement(module)
+      for import in s:parse_imports(s:trim(parts[1]))
+        if !has_key(imports[placement]['from'], module)
+          let imports[placement]['from'][module] = []
+        endif
+        if index(imports[placement]['from'][module], import) == -1
+          call add(imports[placement]['from'][module], import)
+        endif
+      endfor
+    endif
+  endfor
+
+  return imports
+endfunction
+
+
 " Sort the imports in a line range.  This will remove non-import lines.
 function! s:_sort_range(line1, line2) abort
   call s:init()
@@ -347,40 +383,14 @@ function! s:_sort_range(line1, line2) abort
     endif
   endif
 
-  let placements = ['hoist', 'internal', 'external', 'project']
-  let imports = {}
-
-  for placement in placements
-    let imports[placement] = {'import': [], 'from': {}}
-  endfor
-
-  for imp in s:normalize_imports(a:line1, a:line2)
-    if imp =~# '^import '
-      for import in s:parse_imports(s:trim(imp[6:]))
-        let placement = s:placement(import)
-        call add(imports[placement]['import'], import)
-      endfor
-    elseif imp =~# '^from '
-      let parts = split(imp[4:], '\<import\>')
-      let module = s:trim(parts[0])
-      let placement = s:placement(module)
-      for import in s:parse_imports(s:trim(parts[1]))
-        if !has_key(imports[placement]['from'], module)
-          let imports[placement]['from'][module] = []
-        endif
-        if index(imports[placement]['from'][module], import) == -1
-          call add(imports[placement]['from'][module], import)
-        endif
-      endfor
-    endif
-  endfor
+  let imports = impsort#get_imports(a:line1, a:line2)
 
   let import_lines = []
   if lead
     call add(import_lines, '')
   endif
 
-  for placement in placements
+  for placement in s:placements
     for import in s:sort_imports(imports[placement]['import'], 0)
       if import == ''
         call add(import_lines, '')
@@ -580,8 +590,9 @@ function! impsort#auto(separate_groups) abort
     echohl None
   else
     augroup impsort
-      autocmd! TextChangedI <buffer> let b:_impsort_auto = 1
-      execute 'autocmd! InsertLeave <buffer> call s:auto_sort('.a:separate_groups.')'
+      autocmd! impsort * <buffer>
+      autocmd TextChangedI <buffer> let b:_impsort_auto = 1
+      execute 'autocmd InsertLeave <buffer> call s:auto_sort('.a:separate_groups.')'
     augroup END
   endif
 endfunction
