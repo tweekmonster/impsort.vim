@@ -2,18 +2,44 @@
 
 Vim utility for sorting Python imports.
 
+![impsort](https://cloud.githubusercontent.com/assets/111942/16103355/d349f94c-3345-11e6-8077-07c8f4ced343.gif)
+
+## Installation
+
+Any modern plugin manager will work.
+
 ## Usage
 
 ```vim
 :ImpSort
 ```
 
-The `ImpSort` command accepts a range and can be used with visual selections.
+The `:ImpSort` command accepts a range and can be used with visual selections.
+Using `:Impsort!` (with bang) will separate `from ... import` groups with a
+blank line.
+
+You could also have it sort on save:
+
+```vim
+autocmd BufWritePre *.py ImpSort!
+```
+
+Or use a keymap:
+
+```vim
+nnoremap <leader>is :<c-u>ImpSort!<cr>
+```
+
+The sorting method is configurable.  Be sure to read [`:h impsort`](doc/impsort.txt)!
 
 ## Rationale
 
-This plugin is more forgiving than [isort][] and it will not move imports out
-of their defined "regions".  For example:
+I wanted to be able to keep my import lines organized, but I didn't want to
+spend the time to sort it by hand.  Using this plugin, you can add a new import
+and let the sort do its thing.
+
+I also wanted a more forgiving than [isort][].  This plugin will not move
+imports out of their original placement in the script.  For example:
 
 ```python
 import sys

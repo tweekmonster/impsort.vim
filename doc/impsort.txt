@@ -22,13 +22,180 @@ other import sorcery.
 ==============================================================================
 COMMAND                                                       *impsort-command*
 
-								    *:ImpSort*
-:{range}ImpSort		Run ImpSort on your Python script.  It accepts an
+							*:ImpSort* *:ImpSort!*
+:{range}ImpSort[!]	Run ImpSort on your Python script.  It accepts an
 			optional {range} of lines to sort specifically, but
 			any non-import lines in the range will be discarded.
 
+			If [!] is present, "from ... import" lines will be
+			grouped by the first module name and separated with
+			spaces.
+
 			Map it to your favorite key or run it in the command
 			line yourself.  Endless possibilities!
+
+
+==============================================================================
+CONFIG                                                         *impsort-config*
+
+						     *g:impsort_relative_last*
+g:impsort_relative_last		If enabled, relative imports will be moved to
+				the bottom of the import section.
+
+				Default: `0`
+
+
+Sort customization ~
+
+There are a few variables that allow you to change the sort order of the
+imports.  Though these use the |g:| prefix, the |b:| variants will be
+preferred if they're present to allow you to have custom sorting on a
+per-buffer basis.
+
+Each can take more than one sort method.  Each method is used in order.  If
+one results in an equality, the next is tried.
+
+See also: |impsort-methods|, |sort()|
+
+
+						      *g:impsort_method_group*
+g:impsort_method_group		A list of sort methods for a `group`.
+
+				Default: >
+				['length', 'alpha']
+<
+				A group is defined by the first component in
+				the import (the root module).  For example:
+>
+				import os.path
+				from os import path
+<
+				In both of the cases above, `os` is the
+				`group`.  Leading dots (relative imports) are
+				included in the group's name.
+
+				Note: Since a `group` requires more than one
+				import line from the same root module to be
+				effectively sorted, groups that only contain
+				one import line (let's call them `orphans`)
+				are grouped together and placed above all of
+				the other groups.  This is make it easier to
+				see them when there are many imports involved.
+				Additionally, if |:Impsort!| is used to add
+				blank lines between the imports groups, the
+				`orphans` would add a lot of unecessary
+				whitespace.  For example:
+>
+				from moduleA import thangs
+				from moduleB import things
+				from moduleA.thangs import things
+<
+				Would sort to:
+>
+				from moduleB import things
+				from moduleA import thangs
+				from moduleA.thangs import things
+<
+
+						     *g:impsort_method_module*
+g:impsort_method_module		A list of sort methods for `modules` within a
+				group.
+
+				Default: >
+				['depth', 'length', 'alpha']
+<
+				A module is the entire module path immediately
+				after "import" or "from".  For example:
+>
+				import os.path
+				from os import path
+<
+				The modules are "os.path" and "os",
+				respecitvely.
+
+
+						     *g:impsort_method_import*
+g:impsort_method_import		A list of sort methods for imported objects.
+
+				Default: >
+				['length', 'alpha']
+<
+				This only affects "from ... import" lines.
+				This option sorts the text after "import".
+				For Example:
+>
+				from os import path
+<
+				In the example above "path" is the imported
+				object.
+
+
+Sort methods ~
+							     *impsort-methods*
+
+The following methods are available to use with the variables mentioned above.
+
+alpha	  - Alphabetic sort.
+depth	  - Module depth.  Basically how many dots are in the module path.
+length	  - The length of a string.
+|Funcref|   - A custom sort function.  See: |sort()|
+
+
+
+Convenience function~
+
+							  *impsort#sort_top()*
+impsort#sort_top({pattern}, {a}, {b})
+				This function takes a pattern and returns `1`
+				or `-1` to keep it at the top of the sort.  If
+				neither {a} or {b} matches or both matches the
+				pattern, it returns `0` to allow the next
+				method to determine the sort order.
+
+				To keep things sorted to the bottom, you
+				simply multiply the return value by `-1`.
+
+
+Custom sort function ~
+							 *impsort-custom-sort*
+
+If you have different needs for sorting, you can use a |Funcref| to change
+sorting criteria.  For example, if you wanted `django` to always be at the top
+of the import section:
+
+>
+	function! s:django_sort(a, b) abort
+	  return impsort#sort_top('^django', a:a, a:b)
+	endfunction
+
+	let g:impsort_method_group = [function('s:django_sort'), 'length',
+		\ 'alpha']
+	let g:impsort_method_module = [function('s:django_sort'), 'depth',
+		\ 'length', 'alpha']
+<
+
+Note: |django-plus| has an option to enable this:
+https://github.com/tweekmonster/django-plus.vim
+
+
+==============================================================================
+SORTING                                                       *impsort-sorting*
+
+|impsort| sorts sections of imports and separates them by origin.  A section
+is a group of consecutive import lines.
+
+Within each section, imports are sorted by origin:
+
+1. Standard library
+2. Third party (in site-packages)
+3. local (basically imports not found in 1 and 2)
+
+Each of these origins are separated by a blank line as suggested in PEP8.
+
+Within each origin, the imports are sorted using the methods described in
+|impsort-config|.
+
+For sorting module names
 
 
 ==============================================================================
