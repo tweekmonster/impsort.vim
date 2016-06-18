@@ -74,6 +74,13 @@ function! s:clean(s) abort
 endfunction
 
 
+function! s:uniqadd(obj, item) abort
+  if index(a:obj, a:item) == -1
+    call add(a:obj, a:item)
+  endif
+endfunction
+
+
 " Normalize the import lines by cleaning text and joining over-indented lines
 " to the previous import line.
 function! s:normalize_imports(line1, line2) abort
@@ -363,6 +370,41 @@ function! impsort#get_imports(line1, line2) abort
   endfor
 
   return imports
+endfunction
+
+
+" Returns all of the found imports
+function! impsort#get_all_imports() abort
+  let imports = []
+  for r in s:import_regions()
+    let r1 = s:prevline(r[0])
+    let r2 = s:nextline(r[1])
+    call add(imports, {'lines': [r1, r2], 'imports': impsort#get_imports(r1, r2)})
+  endfor
+  return imports
+endfunction
+
+
+" Return a list of all imported objects
+function! impsort#get_all_imported() abort
+  let imported = []
+  for r in impsort#get_all_imports()
+    for [section, imports] in items(r.imports)
+      for item in imports.import
+        call s:uniqadd(imported, item)
+      endfor
+
+      for [module, from_imports] in items(imports.from)
+        for item in from_imports
+          if item =~# '\<as\>'
+            let item = matchstr(item, '\<\k\+$')
+          endif
+          call s:uniqadd(imported, item)
+        endfor
+      endfor
+    endfor
+  endfor
+  return imported
 endfunction
 
 
