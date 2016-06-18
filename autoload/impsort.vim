@@ -638,3 +638,16 @@ function! impsort#auto(separate_groups) abort
     augroup END
   endif
 endfunction
+
+
+function! impsort#highlight_imported() abort
+  call s:init()
+  let imports = impsort#get_all_imported()
+  call sort(imports)
+
+  if !exists('b:python_imports') || imports != b:python_imports
+    silent! syntax clear pythonImported
+    let b:python_imports = imports
+    silent! execute 'syntax keyword pythonImportedObject '.join(imports, ' ')
+  endif
+endfunction

@@ -75,6 +75,15 @@ g:impsort_relative_last		If enabled, relative imports will be moved to
 
 				Default: `0`
 
+						*g:impsort_highlight_imported*
+g:impsort_highlight_imported	If enabled, highlights all imported objects in
+				the buffer on |BufWinEnter| and |TextChanged|.
+
+							*pythonImportedObject*
+				To highlight group used for imported objects
+				is |pythonImportedObject|.  By default, it is
+				linked to the `Keyword` highlight group.
+
 
 Sort customization ~
 
@@ -225,8 +234,6 @@ Each of these origins are separated by a blank line as suggested in PEP8.
 
 Within each origin, the imports are sorted using the methods described in
 |impsort-config|.
-
-For sorting module names
 
 
 ==============================================================================
