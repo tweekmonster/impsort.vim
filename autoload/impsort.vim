@@ -470,7 +470,7 @@ function! s:_sort_range(line1, line2) abort
     let text = getline(nextline)
     if !nextline || text =~# '^except ImportError'
       let import_lines = import_lines[:-2]
-    elseif text =~# '^\s*\%(def\|class\)\>'
+    elseif !line_indent && text =~# '^\s*\%(def\|class\)\>'
       call add(import_lines, '')
     endif
   endif
