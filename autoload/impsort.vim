@@ -15,7 +15,7 @@ function! s:init() abort
     let py = $VIRTUAL_ENV.'/bin/python'
   endif
 
-  for line in systemlist(printf('%s "%s"', py, s:path_script))
+  for line in split(system(printf('%s "%s"', py, s:path_script)), "\n")
     let i = stridx(line, '=')
     let name = line[:i-1]
     if name == 'ext_suffix'
@@ -115,7 +115,7 @@ function! s:parse_imports(imports) abort
     if n == -1
       break
     endif
-    call add(imps, s:trim(a:imports[i:n]))
+    call add(imps, s:trim(a:imports[i :n]))
     let i = n + 1
   endwhile
 
