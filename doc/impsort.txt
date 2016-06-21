@@ -79,6 +79,8 @@ g:impsort_relative_last		If enabled, relative imports will be moved to
 g:impsort_highlight_imported	If enabled, highlights all imported objects in
 				the buffer on |BufWinEnter| and |TextChanged|.
 
+				Default: `1`
+
 							*pythonImportedObject*
 				To highlight group used for imported objects
 				is |pythonImportedObject|.  By default, it is

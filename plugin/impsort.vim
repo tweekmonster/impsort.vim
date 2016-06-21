@@ -3,7 +3,7 @@ command! -bang ImpSortAuto call impsort#auto(<bang>0)
 
 highlight default link pythonImportedObject Keyword
 
-if get(g:, 'impsort_highlight_imported', 0)
+if get(g:, 'impsort_highlight_imported', 1)
   augroup impsort
     autocmd!
     autocmd BufReadPost,InsertLeave,TextChanged *.py call impsort#highlight_imported(0)
