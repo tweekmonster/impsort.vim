@@ -6,6 +6,7 @@ highlight default link pythonImportedObject Keyword
 if get(g:, 'impsort_highlight_imported', 0)
   augroup impsort
     autocmd!
-    autocmd BufWinEnter,InsertLeave * call impsort#highlight_imported()
+    autocmd BufReadPost,InsertLeave,TextChanged *.py call impsort#highlight_imported(0)
+    autocmd FileType *.py call impsort#highlight_imported(1)
   augroup END
 endif

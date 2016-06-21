@@ -640,12 +640,12 @@ function! impsort#auto(separate_groups) abort
 endfunction
 
 
-function! impsort#highlight_imported() abort
+function! impsort#highlight_imported(force) abort
   call s:init()
   let imports = impsort#get_all_imported()
   call sort(imports)
 
-  if !exists('b:python_imports') || imports != b:python_imports
+  if a:force || !exists('b:python_imports') || imports != b:python_imports
     silent! syntax clear pythonImported
     let b:python_imports = imports
     silent! execute 'syntax keyword pythonImportedObject '.join(imports, ' ')
