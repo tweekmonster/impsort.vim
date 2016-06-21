@@ -41,7 +41,7 @@ function! s:import_regions() abort
   while guard < 100
     let start = search(pattern, 'W')
     if !start
-      if last != last_start || last == first_import
+      if last != last_start || (last == first_import && getline(first_import) =~# pattern)
         call add(blocks, [last_start, last])
       endif
       break
