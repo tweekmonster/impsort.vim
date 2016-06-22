@@ -1,4 +1,5 @@
 let s:path_script = expand('<sfile>:p:h:h').'/bin/pyinfo.py'
+let s:star_script = expand('<sfile>:p:h:h').'/bin/star_imports.py'
 let s:placements = ['hoist', 'internal', 'external', 'project']
 let s:impsort_method_group = ['length', 'alpha']
 let s:impsort_method_module = ['depth', 'length', 'alpha']
@@ -388,6 +389,9 @@ endfunction
 " Return a list of all imported objects
 function! impsort#get_all_imported() abort
   let imported = []
+  let star_modules = []
+  let star_objects = []
+
   for r in impsort#get_all_imports()
     for [section, imports] in items(r.imports)
       for item in imports.import
@@ -399,12 +403,19 @@ function! impsort#get_all_imported() abort
           if item =~# '\<as\>'
             let item = matchstr(item, '\<\k\+$')
           endif
-          call s:uniqadd(imported, item)
+          if item =~# '\*'
+            call s:uniqadd(star_modules, module)
+            " This is for the cache comparison
+            call s:uniqadd(imported, module.'.'.item)
+          else
+            call s:uniqadd(imported, item)
+          endif
         endfor
       endfor
     endfor
   endfor
-  return imported
+
+  return [imported, star_modules]
 endfunction
 
 
@@ -640,14 +651,47 @@ function! impsort#auto(separate_groups) abort
 endfunction
 
 
+function! s:highlight(imports, clear) abort
+  if a:clear
+    silent! syntax clear pythonImported
+    let b:python_imports = a:imports
+  endif
+  let imports = filter(copy(a:imports), 'v:val !~# ''\*''')
+  silent! execute 'syntax keyword pythonImportedObject '.join(imports, ' ')
+endfunction
+
+
+function! s:nvim_async_star_import(job, data, event) abort
+  call s:highlight(a:data, 0)
+endfunction
+
+
+function! s:get_star_imports(modules) abort
+  if empty(a:modules)
+    return
+  endif
+
+  let cmd = ['python', s:star_script, expand('%')] + a:modules
+
+  if has('nvim')
+    let opts = {'buf': bufnr('%'), 'on_stdout': function('s:nvim_async_star_import')}
+    call jobstart(cmd, opts)
+  else
+    let star_objects = split(system(join(cmd, ' ').' 2>/dev/null'), "\n")
+    call s:highlight(star_objects, 0)
+  endif
+endfunction
+
+
 function! impsort#highlight_imported(force) abort
   call s:init()
-  let imports = impsort#get_all_imported()
+  let [imports, star_modules] = impsort#get_all_imported()
   call sort(imports)
 
   if a:force || !exists('b:python_imports') || imports != b:python_imports
-    silent! syntax clear pythonImported
-    let b:python_imports = imports
-    silent! execute 'syntax keyword pythonImportedObject '.join(imports, ' ')
+    call s:highlight(imports, 1)
+    if get(g:, 'impsort_highlight_star_imports', 0)
+      call s:get_star_imports(star_modules)
+    endif
   endif
 endfunction

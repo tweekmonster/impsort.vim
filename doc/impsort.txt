@@ -86,6 +86,17 @@ g:impsort_highlight_imported	If enabled, highlights all imported objects in
 				is |pythonImportedObject|.  By default, it is
 				linked to the `Keyword` highlight group.
 
+					    *g:impsort_highlight_star_imports*
+g:impsort_highlight_star_imports
+				If enabled, `*` imports will be parsed in an
+				external script to highlight objects from the
+				module.
+
+				Default: `0`
+
+				If you are using Neovim, this will be done
+				asynchronously.
+
 
 Sort customization ~
 
