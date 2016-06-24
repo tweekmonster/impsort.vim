@@ -753,7 +753,9 @@ function! s:highlight(imports, clear) abort
   let imports = filter(copy(a:imports), 'v:val !~# ''\*\|\.''')
   let dotted = map(filter(copy(a:imports), 'v:val =~# ''\.'''), 'substitute(v:val, ''\.'', ''\\.'', ''g'')')
   silent! execute 'syntax keyword pythonImportedObject '.join(imports, ' ')
-  silent! execute 'syntax match pythonImportedObject #\<\%('.join(dotted, '\|').'\)\>#'
+  if !empty(dotted)
+    silent! execute 'syntax match pythonImportedObject #\<\%('.join(dotted, '\|').'\)\>#'
+  endif
 endfunction
 
 
