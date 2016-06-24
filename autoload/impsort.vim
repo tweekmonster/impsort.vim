@@ -7,6 +7,7 @@ let s:impsort_method_imports = ['alpha', 'length']
 " Prefix sort is undocumented!
 let s:impsort_method_prefix = ['depth', 'alpha']
 
+let s:import_single = '^\(\s*\)\<\%(import\|from\)\>.*\n\_^\%(\%(\s*\|\1\s\+.*\)\n\)*'
 let s:import_block = '\_^\(\s*\)\<\%(import\|from\)\> .\+\_$\%(\1\_s\+\_^\s\+.\+\)*'
 
 
@@ -792,4 +793,26 @@ function! impsort#highlight_imported(force) abort
       call s:get_star_imports(star_modules)
     endif
   endif
+endfunction
+
+
+function! impsort#formatexpr() abort
+  if !exists('b:_orig_formatexpr')
+    return 1
+  endif
+
+  if !empty(v:char)
+    let first = search(s:import_single, 'nbW', max([1, v:lnum - 5]))
+    if first && first <= v:lnum
+          \ && search(s:import_single, 'nW', min([line('$'), v:lnum + 5])) >= v:lnum
+      return 0
+    endif
+  endif
+
+  if !empty(b:_orig_formatexpr)
+    execute 'let orig = '.b:_orig_formatexpr
+    return orig
+  endif
+
+  return 1
 endfunction

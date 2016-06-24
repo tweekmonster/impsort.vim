@@ -89,6 +89,22 @@ g:impsort_line_continuation     If enabled, uses line continuations instead of
 
 				Default: `0`
 
+					       *g:impsort_override_formatexpr*
+g:impsort_override_formatexpr	If enabled, overrides the formatexpr while
+				typing on an import line.  Since |impsort|
+				takes care of formatting, letting the default
+				|'formatexpr'| wrap an import line as you're
+				typing can be annoying.
+
+				Default: `0`
+
+				Note: This only applies while you're typing in
+				insert mode.  Manual formatting with |gq| will
+				work like it usually would.
+
+				Note: This is a convenient option when using
+				|:ImpSortAuto|.
+
 						*g:impsort_highlight_imported*
 g:impsort_highlight_imported	If enabled, highlights all imported objects in
 				the buffer on |BufWinEnter| and |TextChanged|.
