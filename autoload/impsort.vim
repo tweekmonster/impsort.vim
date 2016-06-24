@@ -7,6 +7,8 @@ let s:impsort_method_imports = ['alpha', 'length']
 " Prefix sort is undocumented!
 let s:impsort_method_prefix = ['depth', 'alpha']
 
+let s:import_block = '\_^\(\s*\)\<\%(import\|from\)\> .\+\_$\%(\1\_s\+\_^\s\+.\+\)*'
+
 
 function! impsort#get_config(name, default) abort
   let name = 'impsort_'.a:name
@@ -40,22 +42,21 @@ endfunction
 function! s:import_regions() abort
   let saved = winsaveview()
   keepjumps normal! gg
-  let pattern = '\_^\(\s*\)\<\%(import\|from\)\> .\+\_$\%(\1\_s\+\_^\s\+.\+\)*'
   let blocks = []
-  let last = prevnonblank(search(pattern, 'ncW') - 1) + 1
+  let last = prevnonblank(search(s:import_block, 'ncW') - 1) + 1
   let first_import = last
   let last_start = last
   let guard = 0
 
   while guard < 100
-    let start = search(pattern, 'W')
+    let start = search(s:import_block, 'W')
     if !start
-      if last != last_start || (last == first_import && getline(first_import) =~# pattern)
+      if last != last_start || (last == first_import && getline(first_import) =~# s:import_block)
         call add(blocks, [last_start, last])
       endif
       break
     endif
-    let end = search(pattern, 'eW')
+    let end = search(s:import_block, 'eW')
     let prev = prevnonblank(max([first_import, start - 1]))
 
     if prev != last && join(getline(last_start, last), '') !~# '^\s*$'
@@ -320,7 +321,6 @@ function! s:common_prefix_sort(modules) abort
         call add(group, m)
       endif
     endfor
-
     call filter(modules, 'index(group, v:val) == -1')
     call add(groups, s:sort(map(group, 'join(v:val, ''.'')'), sort_method))
   endwhile
