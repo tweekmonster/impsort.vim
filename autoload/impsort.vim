@@ -3,7 +3,7 @@ let s:star_script = expand('<sfile>:p:h:h').'/bin/star_imports.py'
 let s:placements = ['hoist', 'internal', 'external', 'project']
 let s:impsort_method_group = ['length', 'alpha']
 let s:impsort_method_module = ['depth', 'length', 'alpha']
-let s:impsort_method_import = ['length', 'alpha']
+let s:impsort_method_imports = ['alpha', 'length']
 " Prefix sort is undocumented!
 let s:impsort_method_prefix = ['depth', 'alpha']
 

@@ -181,7 +181,7 @@ g:impsort_method_module		A list of sort methods for `modules` within a
 g:impsort_method_imports	A list of sort methods for imported objects.
 
 				Default: >
-				['length', 'alpha']
+				['alpha', 'length']
 <
 				This only affects "from ... import" lines.
 				This option sorts the text after "import".
