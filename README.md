@@ -1,6 +1,6 @@
 # impsort.vim
 
-Vim utility for sorting Python imports.
+Vim utility for sorting and highlighting Python imports.
 
 ![impsort](https://cloud.githubusercontent.com/assets/111942/16103355/d349f94c-3345-11e6-8077-07c8f4ced343.gif)
 

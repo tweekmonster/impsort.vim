@@ -9,14 +9,19 @@
 ==============================================================================
 INTRO                                                           *impsort-intro*
 
-|impsort| will sensibly sort your Python import lines.  "Sensibly" means that
-it will sort groups of imports without moving them out of their original place
-in the file.
+|impsort| will sensibly sort your Python import lines, as well as highlight
+imported objects.  "Sensibly" means that it will sort groups of imports
+without moving them out of their original place in the file.
 
 A similar utility named `isort` does the same thing, but is a little
 destructive in doing so.  It tries to hoist almost all imports up to the top
 of the file.  This is bad if you're modifying `sys.path` or need to do some
 other import sorcery.
+
+Highlighting doesn't have anything to do with the sorting.  It's simply nicety
+that was easily achievable the existing code.  It's useful as a way to quickly
+see if variables you're using is actually an import being shadowed.  This
+includes names from a star import (see: |g:impsort_highlight_star_imports|).
 
 
 ==============================================================================
