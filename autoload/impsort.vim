@@ -283,7 +283,7 @@ endfunction
 " `module` sort method.
 " Todo: Think about refactoring this.
 function! s:common_prefix_sort(modules) abort
-  let modules = map(reverse(s:sort(copy(a:modules), s:get_method('_prefix'))),
+  let modules = map(reverse(s:sort(copy(a:modules), s:get_method('prefix'))),
         \ 'split(v:val, ''\.'', 1)')
   let groups = []
   let consumed = []
