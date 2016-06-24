@@ -25,6 +25,15 @@ includes names from a star import (see: |g:impsort_highlight_star_imports|).
 
 
 ==============================================================================
+CONTENTS                                                     *impsort-contents*
+
+  Commands              |impsort-command|
+  Config                |impsort-config|
+  Sorting               |impsort-sorting|
+  Notable behavior      |impsort-notes|
+  License               |impsort-license|
+
+==============================================================================
 COMMAND                                                       *impsort-command*
 
 							*:ImpSort* *:ImpSort!*
@@ -162,7 +171,7 @@ g:impsort_method_group		A list of sort methods for a `group`.
 				see them when there are many imports involved.
 				Additionally, if |:Impsort!| is used to add
 				blank lines between the imports groups, the
-				`orphans` would add a lot of unecessary
+				`orphans` would add a lot of unnecessary
 				whitespace.  For example:
 >
 				from moduleA import thangs
@@ -190,7 +199,7 @@ g:impsort_method_module		A list of sort methods for `modules` within a
 				from os import path
 <
 				The modules are "os.path" and "os",
-				respecitvely.
+				respectively.
 
 
 						    *g:impsort_method_imports*
@@ -273,6 +282,44 @@ Each of these origins are separated by a blank line as suggested in PEP8.
 
 Within each origin, the imports are sorted using the methods described in
 |impsort-config|.
+
+
+==============================================================================
+NOTES                                                           *impsort-notes*
+
+|impsort| doesn't care too much about syntax.  It searches for lines starting
+with `import` or `from` and any number of lines immediately after it that are
+blank or begin with indentation greater than the import line's.
+
+For example: >
+
+  from os import (
+  	\ %
+
+      ^path
+<
+|impsort| will consider all of the above to be an import line.  The only thing
+that matters is that the following lines are blank or indented past the
+initial import line.  Non-keyword characters are stripped from the text
+(including commas) to normalize the text before parsing.  As a result, you get
+a convenient side effect: You can more objects to import anywhere within those
+lines.
+
+Example adding `mkdir` to the import:
+>
+  from os import (
+  	\ %
+
+      ^path mkdir
+<
+After running |:ImpSort|:
+>
+  from os import mkdir, path
+<
+The main convenience is that you don't have to worry about extra commas or
+parenthesis that you may have yanked from another file.  Simply adding them
+then sorting will be enough.  Additionally, with |:ImpSortAuto| enabled, the
+line will be cleaned up and sorted automatically upon |InsertLeave|.
 
 
 ==============================================================================
