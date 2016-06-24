@@ -177,8 +177,8 @@ g:impsort_method_module		A list of sort methods for `modules` within a
 				respecitvely.
 
 
-						     *g:impsort_method_import*
-g:impsort_method_import		A list of sort methods for imported objects.
+						    *g:impsort_method_imports*
+g:impsort_method_imports	A list of sort methods for imported objects.
 
 				Default: >
 				['length', 'alpha']
