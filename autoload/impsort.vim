@@ -4,6 +4,8 @@ let s:placements = ['hoist', 'internal', 'external', 'project']
 let s:impsort_method_group = ['length', 'alpha']
 let s:impsort_method_module = ['depth', 'length', 'alpha']
 let s:impsort_method_import = ['length', 'alpha']
+" Prefix sort is undocumented!
+let s:impsort_method_prefix = ['depth', 'alpha']
 
 
 function! s:get_config_var(name, default) abort
@@ -268,6 +270,69 @@ function! s:get_method(name) abort
 endfunction
 
 
+" Sort prefix groups of module imports.
+" Note: This is not used with the `s:sort()` function.
+function! s:_prefix_cmp(a, b) abort
+  " s:_sort_methods is set externally.
+  return s:_sort(a:a[0], a:b[0])
+endfunction
+
+
+" Group the imports by longest common prefix, then sort each group using the
+" `module` sort method.
+" Todo: Think about refactoring this.
+function! s:common_prefix_sort(modules) abort
+  let modules = map(reverse(s:sort(copy(a:modules), s:get_method('_prefix'))),
+        \ 'split(v:val, ''\.'', 1)')
+  let groups = []
+  let consumed = []
+  let sort_method = s:get_method('module')
+
+  while len(modules)
+    let matcher = modules[0]
+    let prefix = []
+    for m in modules[1:]
+      let dots = min([len(m), len(matcher)])
+      for i in range(dots, 0, -1)
+        if matcher[:i] == m[:i] && i > len(prefix)
+          let prefix = matcher[:i]
+          break
+        endif
+      endfor
+
+      if !empty(prefix)
+        break
+      endif
+    endfor
+
+    call remove(modules, 0)
+
+    if empty(prefix)
+      call add(groups, [join(matcher, '.')])
+      continue
+    endif
+
+    let group = [matcher]
+    let i = len(prefix) - 1
+    for m in modules
+      if m[:i] == prefix
+        call add(group, m)
+      endif
+    endfor
+
+    call filter(modules, 'index(group, v:val) == -1')
+    call add(groups, s:sort(map(group, 'join(v:val, ''.'')'), sort_method))
+  endwhile
+
+  let s:_sort_methods = sort_method
+  let out = []
+  for item in sort(groups, 's:_prefix_cmp')
+    call extend(out, item)
+  endfor
+  return out
+endfunction
+
+
 function! s:sort_imports(imports, group_space) abort
   let groups = {}
   for imp in a:imports
@@ -302,7 +367,7 @@ function! s:sort_imports(imports, group_space) abort
       let groupname = ''
     endif
     let import_group = map(groupimports, 'groupname . v:val')
-    call extend(out, s:sort(import_group, s:get_method('module')))
+    call extend(out, s:common_prefix_sort(import_group))
     if a:group_space
       call add(out, '')
     endif
