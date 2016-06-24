@@ -74,9 +74,18 @@ COMMAND                                                       *impsort-command*
 ==============================================================================
 CONFIG                                                         *impsort-config*
 
+Though these use the |g:| prefix, the |b:| variants will be preferred if
+they're present to allow you to have custom settings on a per-buffer basis.
+
 						     *g:impsort_relative_last*
 g:impsort_relative_last		If enabled, relative imports will be moved to
 				the bottom of the import section.
+
+				Default: `0`
+
+						 *g:impsort_line_continuation*
+g:impsort_line_continuation     If enabled, uses line continuations instead of
+				parenthesis for wrapping import lines.
 
 				Default: `0`
 
@@ -106,12 +115,8 @@ g:impsort_highlight_star_imports
 Sort customization ~
 
 There are a few variables that allow you to change the sort order of the
-imports.  Though these use the |g:| prefix, the |b:| variants will be
-preferred if they're present to allow you to have custom sorting on a
-per-buffer basis.
-
-Each can take more than one sort method.  Each method is used in order.  If
-one results in an equality, the next is tried.
+imports.  Each can take more than one sort method.  Each method is used in
+order.  If one results in an equality, the next is tried.
 
 See also: |impsort-methods|, |sort()|
 

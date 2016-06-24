@@ -6,6 +6,11 @@ let s:impsort_method_module = ['depth', 'length', 'alpha']
 let s:impsort_method_import = ['length', 'alpha']
 
 
+function! s:get_config_var(name, default) abort
+  return get(b:, a:name, get(g:, a:name, get(s:, a:name, a:default)))
+endfunction
+
+
 " Call the python script to get the environment python interpreter's info.
 function! s:init() abort
   if exists('s:paths')
@@ -222,7 +227,7 @@ endfunction
 function! s:_group_cmp(a, b) abort
   " relative imports always goes to the bottom
   let order = impsort#sort_top('^\.', a:a, a:b)
-        \ * (get(g:, 'impsort_relative_last', 0) ? -1 : 1)
+        \ * (s:get_config_var('impsort_relative_last', 0) ? -1 : 1)
   if order
     return order
   endif
@@ -249,9 +254,7 @@ endfunction
 
 
 function! s:get_method(name) abort
-  let method = get(b:, 'impsort_method_'.a:name,
-        \ get(g:, 'impsort_method_'.a:name,
-        \ get(s:, 'impsort_method_'.a:name, ['length', 'alpha'])))
+  let method = s:get_config_var('impsort_method_'.a:name, ['length', 'alpha'])
   let funcs = []
   for i in range(len(method))
     " Not using for...in to avoid type mismatch error
@@ -310,8 +313,11 @@ endfunction
 
 
 " Wrap imports if they go beyond &textwidth
-function! s:wrap_imports(imports, width) abort
-  let remainder = &l:textwidth - a:width
+function! s:wrap_imports(from, imports) abort
+  let slash_wrap = s:get_config_var('impsort_line_continuation', 0)
+  let width = len(a:from)
+
+  let remainder = &l:textwidth - width
   if len(a:imports) < remainder
     return a:imports
   endif
@@ -321,21 +327,43 @@ function! s:wrap_imports(imports, width) abort
     return a:imports
   endif
 
-  let out = '('
-  let remainder += 1
-  let l = 1
-  for import in imports
-    let l1 = len(import) + 1
-    if l > 1 && l + l1 > remainder
-      let out = out[:-2]
-      let out .= "\n".repeat(' ', a:width + 1)
-      let l = 0
-    endif
-    let l += l1
-    let out .= import.' '
-  endfor
+  let out = ''
 
-  return out[:-2].')'
+  if slash_wrap
+    let l = 0
+    let width = 4
+    for import in imports
+      let l1 = len(import) + 1
+      if l + l1 > remainder
+        if empty(out)
+          let out = '\'
+        else
+          let out = out[:-2].' \'
+        endif
+        let out .= "\n".repeat(' ', width)
+        let l = 0
+        let remainder = &l:textwidth - 4
+      endif
+      let l += l1
+      let out .= import.' '
+    endfor
+  else
+    let l = 1
+    let out .= '('
+    let remainder += 1
+    for import in imports
+      let l1 = len(import) + 1
+      if l > 1 && l + l1 > remainder
+        let out = out[:-2]
+        let out .= "\n".repeat(' ', width + 1)
+        let l = 0
+      endif
+      let l += l1
+      let out .= import.' '
+    endfor
+  endif
+
+  return out[:-2].(slash_wrap ? '' : ')')
 endfunction
 
 
@@ -467,7 +495,7 @@ function! s:_sort_range(line1, line2) abort
       let from_line = prefix.'from '.import.' import '
       let from_imports = join(s:sort(imports[placement]['from'][import],
             \ s:get_method('imports')), ', ')
-      let from_line .= s:wrap_imports(from_imports, len(from_line))
+      let from_line .= s:wrap_imports(from_line, from_imports)
       call extend(import_lines, split(from_line, "\n"))
     endfor
 
@@ -692,7 +720,7 @@ function! impsort#highlight_imported(force) abort
 
   if a:force || !exists('b:python_imports') || imports != b:python_imports
     call s:highlight(imports, 1)
-    if get(g:, 'impsort_highlight_star_imports', 0)
+    if s:get_config_var('impsort_highlight_star_imports', 0)
       call s:get_star_imports(star_modules)
     endif
   endif
