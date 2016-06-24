@@ -71,7 +71,7 @@ endfunction
 
 " Clean string of characters that are not relevant to impsort.vim
 function! s:clean(s) abort
-  return s:trim(substitute(a:s, '\c[^a-z0-9_\-.\* ]\+', ' ', 'g'))
+  return s:trim(substitute(a:s, '\c[^a-z0-9_\-.*]\+', ' ', 'g'))
 endfunction
 
 
