@@ -8,8 +8,9 @@ let s:impsort_method_imports = ['alpha', 'length']
 let s:impsort_method_prefix = ['depth', 'alpha']
 
 
-function! s:get_config_var(name, default) abort
-  return get(b:, a:name, get(g:, a:name, get(s:, a:name, a:default)))
+function! impsort#get_config(name, default) abort
+  let name = 'impsort_'.a:name
+  return get(b:, name, get(g:, name, get(s:, name, a:default)))
 endfunction
 
 
@@ -229,7 +230,7 @@ endfunction
 function! s:_group_cmp(a, b) abort
   " relative imports always goes to the bottom
   let order = impsort#sort_top('^\.', a:a, a:b)
-        \ * (s:get_config_var('impsort_relative_last', 0) ? -1 : 1)
+        \ * (impsort#get_config('relative_last', 0) ? -1 : 1)
   if order
     return order
   endif
@@ -256,7 +257,7 @@ endfunction
 
 
 function! s:get_method(name) abort
-  let method = s:get_config_var('impsort_method_'.a:name, ['length', 'alpha'])
+  let method = impsort#get_config('method_'.a:name, ['length', 'alpha'])
   let funcs = []
   for i in range(len(method))
     " Not using for...in to avoid type mismatch error
@@ -379,7 +380,7 @@ endfunction
 
 " Wrap imports if they go beyond &textwidth
 function! s:wrap_imports(from, imports) abort
-  let slash_wrap = s:get_config_var('impsort_line_continuation', 0)
+  let slash_wrap = impsort#get_config('line_continuation', 0)
   let width = len(a:from)
 
   let remainder = &l:textwidth - width
@@ -785,7 +786,7 @@ function! impsort#highlight_imported(force) abort
 
   if a:force || !exists('b:python_imports') || imports != b:python_imports
     call s:highlight(imports, 1)
-    if s:get_config_var('impsort_highlight_star_imports', 0)
+    if impsort#get_config('highlight_star_imports', 0)
       call s:get_star_imports(star_modules)
     endif
   endif
