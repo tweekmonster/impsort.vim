@@ -748,7 +748,7 @@ endfunction
 
 function! s:highlight(imports, clear) abort
   if a:clear
-    silent! syntax clear pythonImported
+    silent! syntax clear pythonImportedObject
     let b:python_imports = a:imports
   endif
   let imports = filter(copy(a:imports), 'v:val !~# ''\*\|\.''')
