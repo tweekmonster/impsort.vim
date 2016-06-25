@@ -751,8 +751,10 @@ function! s:highlight(imports, clear) abort
     silent! syntax clear pythonImportedObject
     let b:python_imports = a:imports
   endif
-  let imports = filter(copy(a:imports), 'v:val !~# ''\*\|\.''')
-  let dotted = map(filter(copy(a:imports), 'v:val =~# ''\.'''), 'substitute(v:val, ''\.'', ''\\.'', ''g'')')
+
+  let simports = filter(reverse(sort(copy(a:imports), 's:__length_cmp')), 'v:val !~# ''\*''')
+  let imports = filter(copy(simports), 'v:val !~# ''\.''')
+  let dotted = map(filter(copy(simports), 'v:val =~# ''\.'''), 'substitute(v:val, ''\.'', ''\\.'', ''g'')')
   silent! execute 'syntax keyword pythonImportedObject '.join(imports, ' ')
   if !empty(dotted)
     silent! execute 'syntax match pythonImportedObject #\<\%('.join(dotted, '\|').'\)\>#'
