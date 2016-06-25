@@ -121,9 +121,10 @@ g:impsort_highlight_imported	If enabled, highlights all imported objects in
 				Default: `1`
 
 							*pythonImportedObject*
-				To highlight group used for imported objects
-				is |pythonImportedObject|.  By default, it is
-				linked to the `Keyword` highlight group.
+				Note: The highlight group used for imported
+				objects is |pythonImportedObject|.  By
+				default, it is linked to the `Keyword`
+				highlight group.
 
 					    *g:impsort_highlight_star_imports*
 g:impsort_highlight_star_imports
@@ -133,8 +134,8 @@ g:impsort_highlight_star_imports
 
 				Default: `0`
 
-				If you are using Neovim, this will be done
-				asynchronously.
+				Note: If you are using Neovim, this will be
+				done asynchronously.
 
 
 Sort customization ~
