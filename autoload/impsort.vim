@@ -490,6 +490,9 @@ function! impsort#get_all_imported() abort
   for r in impsort#get_all_imports()
     for [section, imports] in items(r.imports)
       for item in imports.import
+        if item =~# '\<as\>'
+          let item = matchstr(item, '\<\k\+$')
+        endif
         call s:uniqadd(imported, item)
       endfor
 
