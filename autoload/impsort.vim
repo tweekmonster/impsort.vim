@@ -1,13 +1,24 @@
 let s:path_script = expand('<sfile>:p:h:h').'/bin/pyinfo.py'
 let s:star_script = expand('<sfile>:p:h:h').'/bin/star_imports.py'
+let s:import_script = expand('<sfile>:p:h:h').'/bin/imports.py'
 let s:placements = ['hoist', 'internal', 'external', 'project']
 let s:impsort_method_group = ['length', 'alpha']
 let s:impsort_method_module = ['depth', 'length', 'alpha']
 let s:impsort_method_imports = ['alpha', 'length']
 " Prefix sort is undocumented!
 let s:impsort_method_prefix = ['depth', 'alpha']
+let s:has_async = exists('*jobstart') || exists('*job_start')
+let s:job_data = {}
 
 let s:import_single = '^\(\s*\)\<\%(import\|from\)\>.*\n\_^\%(\%(\%(\s*)\)\?\s*\|\1\s\+.*\)\n\)*'
+
+
+function! s:python_bin() abort
+  if exists('$VIRTUAL_ENV') && executable($VIRTUAL_ENV.'/bin/python')
+    return $VIRTUAL_ENV.'/bin/python'
+  endif
+  return 'python'
+endfunction
 
 
 function! impsort#get_config(name, default) abort
@@ -21,10 +32,7 @@ function! s:init() abort
   if exists('s:paths')
     return
   endif
-  let py = 'python'
-  if exists('$VIRTUAL_ENV') && executable($VIRTUAL_ENV.'/bin/python')
-    let py = $VIRTUAL_ENV.'/bin/python'
-  endif
+  let py = s:python_bin()
 
   for line in split(system(printf('%s "%s"', py, s:path_script)), "\n")
     let i = stridx(line, '=')
@@ -758,24 +766,188 @@ function! impsort#auto(separate_groups) abort
 endfunction
 
 
-function! s:highlight(imports, clear) abort
-  if a:clear
-    silent! syntax clear pythonImportedObject
-    let b:python_imports = a:imports
+function! s:highlight(imports, ...) abort
+  let imports = sort(filter(copy(a:imports), '!empty(v:val) && v:val !~# ''\*'''))
+  if exists('b:python_imports') && imports == b:python_imports
+    return
   endif
 
-  let simports = filter(reverse(sort(copy(a:imports), 's:__length_cmp')), 'v:val !~# ''\*''')
-  let imports = filter(copy(simports), 'v:val !~# ''\.''')
-  let dotted = map(filter(copy(simports), 'v:val =~# ''\.'''), 'substitute(v:val, ''\.'', ''\\.'', ''g'')')
-  silent! execute 'syntax keyword pythonImportedObject '.join(imports, ' ')
-  if !empty(dotted)
-    silent! execute 'syntax match pythonImportedObject #\<\%('.join(dotted, '\|').'\)\>#'
+  if !a:0 || !a:1
+    silent! syntax clear pythonImportedObject pythonImportedFuncDef pythonImportedClassDef
+  endif
+
+  let b:python_imports = imports
+
+  let types = {
+        \ 'function': [],
+        \ 'function_dotted': [],
+        \ 'class': [],
+        \ 'class_dotted': [],
+        \ 'module': [],
+        \ 'module_dotted': [],
+        \ 'misc': [],
+        \ 'misc_dotted': [],
+        \ }
+
+  for import in imports
+    if import =~# ','
+      let [name, type] = split(import, ',\ze[^,]\+$')
+
+      if type == 'import'
+        let type = 'module'
+      endif
+
+      if !has_key(types, type)
+        let type = 'misc'
+      endif
+
+      " There should never be a `module_dotted`, but better to be safe.
+      if name =~# '\.'
+        let type .= '_dotted'
+        let name = substitute(name, '\.', '\\.', 'g')
+      endif
+
+      call add(types[type], name)
+    elseif import =~# '\.'
+      call add(types.misc_dotted, import)
+    else
+      call add(types.misc, import)
+    endif
+  endfor
+
+  for [k, v] in items(types)
+    if empty(v)
+      continue
+    endif
+
+    if k =~# '^function'
+      let group = 'pythonImportedFuncDef'
+    elseif k =~# '^class'
+      let group = 'pythonImportedClassDef'
+    elseif k =~# '^module'
+      let group = 'pythonImportedModule'
+    else
+      let group = 'pythonImportedObject'
+    endif
+
+    call reverse(sort(v, 's:__length_cmp'))
+
+    if k =~# '_dotted$'
+      execute 'syntax match' group '#\<\%('.join(v, '\|').'\)\>#'
+    else
+      execute 'syntax keyword' group join(v, ' ')
+    endif
+  endfor
+endfunction
+
+
+function! s:async_finish(job) abort
+  if !has_key(s:job_data, a:job)
+    return
+  endif
+
+  let data = s:job_data[a:job]
+  let cur_buffer = bufnr('%')
+
+  if cur_buffer != data.buffer
+    execute 'noautocmd keepalt buffer' data.buffer
+  endif
+
+  unlet! b:impsort_highlight_job
+
+  if !empty(data.output)
+    call call('s:highlight', [data.output] + data.hlargs)
+  endif
+  call remove(s:job_data, a:job)
+
+  if cur_buffer != bufnr('%')
+    execute 'noautocmd keepalt buffer' cur_buffer
   endif
 endfunction
 
 
-function! s:nvim_async_star_import(job, data, event) abort
-  call s:highlight(a:data, 0)
+function! s:async_nvim_handler(job, data, event) abort
+  if a:event == 'exit'
+    call s:async_finish(a:job)
+  elseif a:event == 'stderr'
+    echohl ErrorMsg
+    for line in a:data
+      echomsg '[impsort]' line
+    endfor
+    echohl None
+    redraw
+  elseif a:event == 'stdout'
+    call extend(s:job_data[a:job].output, a:data)
+  endif
+endfunction
+
+
+function! s:async_vim_close(channel) abort
+  let ch_job = ch_getjob(a:channel)
+  let job = matchstr(ch_job, '\d\+')
+
+  while ch_status(a:channel) == 'buffered'
+    try
+      call add(s:job_data[job].output, ch_read(a:channel))
+    catch //
+    endtry
+
+    " Todo: Find out if this is stupid because it feels stupid.
+    echohl ErrorMsg
+    try
+      echomsg '[impsort]' ch_read(a:channel, {'part': 'err'})
+    catch //
+    finally
+      echohl None
+    endtry
+  endwhile
+
+  call s:async_finish(job)
+endfunction
+
+
+function! s:do_async_job(cmd, input, ...) abort
+  let data = {
+        \ 'buffer': bufnr('%'),
+        \ 'hlargs': a:000,
+        \ 'output': [],
+        \ }
+
+  if has('nvim') && exists('*jobstart')
+    let opts = {}
+    let opts.on_stdout = function('s:async_nvim_handler')
+    let opts.on_stderr = function('s:async_nvim_handler')
+    let opts.on_exit = function('s:async_nvim_handler')
+    let job = jobstart(a:cmd, opts)
+    let s:job_data[job] = data
+    let b:impsort_highlight_job = job
+    if !empty(a:input)
+      call jobsend(job, a:input)
+    endif
+    call jobclose(job, 'stdin')
+  elseif !has('nvim') && exists('*job_start')
+    let tmpfile = tempname()
+    call writefile(a:input, tmpfile)
+    let opts = {
+          \ 'close_cb': function('s:async_vim_close'),
+          \ 'out_mode': 'nl',
+          \ 'err_mode': 'nl',
+          \ 'in_io': 'file',
+          \ 'in_name': tmpfile,
+          \ }
+    let job = matchstr(job_start(a:cmd, opts), '\d\+')
+    let b:impsort_highlight_job = job
+    let s:job_data[job] = data
+    call delete(tmpfile)
+  else
+    " The calling function must check async capabilities before calling.  If
+    " we got this far, it means the caller allowed it.
+    let strcmd = join(map(copy(a:cmd), 'shellescape(v:val)'), ' ')
+    let imports = split(system(strcmd, a:input), "\n")
+    if !empty(imports)
+      call call('s:highlight', [imports] + a:000)
+    endif
+  endif
 endfunction
 
 
@@ -784,26 +956,32 @@ function! s:get_star_imports(modules) abort
     return
   endif
 
-  let cmd = ['python', s:star_script, expand('%')] + a:modules
-
-  if has('nvim')
-    let opts = {'buf': bufnr('%'), 'on_stdout': function('s:nvim_async_star_import')}
-    call jobstart(cmd, opts)
-  else
-    let star_objects = split(system(join(cmd, ' ').' 2>/dev/null'), "\n")
-    call s:highlight(star_objects, 0)
-  endif
+  let cmd = [s:python_bin(), s:star_script, expand('%')] + a:modules
+  call s:do_async_job(cmd, [], 1)
 endfunction
 
 
 function! impsort#highlight_imported(force) abort
   call s:init()
-  let [imports, star_modules] = impsort#get_all_imported()
-  call sort(imports)
 
-  if a:force || !exists('b:python_imports') || imports != b:python_imports
-    call s:highlight(imports, 1)
-    if impsort#get_config('highlight_star_imports', 0)
+  if exists('SessionLoad') || exists('b:impsort_highlight_job')
+    return
+  endif
+
+  if a:force
+    unlet! b:python_imports
+  endif
+
+  if s:has_async || impsort#get_config('allow_slow_parse', 0)
+    let lines = []
+    for [l1, l2] in s:import_regions()
+      call extend(lines, map(getline(l1, l2), 'substitute(v:val, ''^\s*'', '''', ''g'')'))
+    endfor
+    call s:do_async_job([s:python_bin(), s:import_script, expand('%')], lines)
+  else
+    let [imports, star_modules] = impsort#get_all_imported()
+    call s:highlight(imports)
+    if !empty(star_modules) && impsort#get_config('highlight_star_imports', 0)
       call s:get_star_imports(star_modules)
     endif
   endif
