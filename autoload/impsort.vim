@@ -67,7 +67,7 @@ function! s:import_regions() abort
   let guard = 0
 
   while guard < 100
-    let start = search(s:import_single, 'W')
+    let start = search(s:import_single, 'cW')
     if !start
       if last != last_start || (last == first_import && getline(first_import) =~# s:import_single)
         call s:add_block(blocks, last_start, last)
