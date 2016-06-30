@@ -29,6 +29,7 @@ CONTENTS                                                     *impsort-contents*
 
   Commands              |impsort-command|
   Config                |impsort-config|
+  Highlighting          |impsort-highlight|
   Sorting               |impsort-sorting|
   Notable behavior      |impsort-notes|
   License               |impsort-license|
@@ -120,11 +121,18 @@ g:impsort_highlight_imported	If enabled, highlights all imported objects in
 
 				Default: `1`
 
-							*pythonImportedObject*
-				Note: The highlight group used for imported
-				objects is |pythonImportedObject|.  By
-				default, it is linked to the `Keyword`
-				highlight group.
+				Note: If asynchronous calls are not available,
+				a simple highlighting method will be used
+				based on imported names.
+
+				The highlight group used for imported objects
+				is |pythonImportedObject|.  By default, it is
+				linked to the `Keyword` highlight group.
+
+				If asynchronous calls are available, a more
+				accurate parser is used to highlight imported
+				functions, classes, and modules.
+				See: |impsort-highlight|
 
 					    *g:impsort_highlight_star_imports*
 g:impsort_highlight_star_imports
@@ -134,8 +142,22 @@ g:impsort_highlight_star_imports
 
 				Default: `0`
 
-				Note: If you are using Neovim, this will be
-				done asynchronously.
+				Note: This option is ignored if asynchronous
+				calls are available.
+
+						  *g:impsort_allow_slow_parse*
+g:impsort_allow_slow_parse	If enabled, a more accurate, but slower import
+				parser is used.
+
+				Default: `0`
+
+				Note: This option is ignored if asynchronous
+				calls are available.
+
+				Note: This option is for testing purposes.
+				You should not enable this option manually.
+				If asynchronous calls are not available, there
+				will be a significant delay while editing.
 
 
 Sort customization ~
@@ -268,6 +290,32 @@ https://github.com/tweekmonster/django-plus.vim
 
 
 ==============================================================================
+HIGHLIGHTING                                                *impsort-highlight*
+
+When |g:impsort_highlight_imported| is enabled, the following syntax groups
+are used to highlight imported object names:
+
+							*pythonImportedObject*
+|pythonImportedObject| is the default syntax group for imported object names.
+This group is linked to `Keyword`.  If asynchronous calls are available, this
+syntax group will be used for imported object names that aren't covered by the
+ones mentioned below.
+
+						       *pythonImportedFuncDef*
+|pythonImportedFuncDef| is used for imported functions.  This group is linked
+to `Function`.
+
+						      *pythonImportedClassDef*
+|pythonImportedClassDef| is used for imported classes.  This group is linked
+to `Class`.
+
+							*pythonImportedModule*
+|pythonImportedModule| is used for imported modules.  Unlike the previous two,
+this group is linked to |pythonImportedObject| since distinguishing this may
+not be that useful.
+
+
+==============================================================================
 SORTING                                                       *impsort-sorting*
 
 |impsort| sorts sections of imports and separates them by origin.  A section
@@ -303,8 +351,8 @@ For example: >
 that matters is that the following lines are blank or indented past the
 initial import line.  Non-keyword characters are stripped from the text
 (including commas) to normalize the text before parsing.  As a result, you get
-a convenient side effect: You can more objects to import anywhere within those
-lines.
+a convenient side effect: You can add more objects to import anywhere within
+those lines.
 
 Example adding `mkdir` to the import:
 >
