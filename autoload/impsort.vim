@@ -68,7 +68,7 @@ function! s:import_regions() abort
     else
       break
     endif
-    
+
     let last_end = end
     let guard += 1
   endwhile
@@ -760,7 +760,10 @@ function! s:highlight(imports, ...) abort
   endif
 
   if !a:0 || !a:1
-    silent! syntax clear pythonImportedObject pythonImportedFuncDef pythonImportedClassDef
+    silent! syntax clear pythonImportedObject
+    silent! syntax clear pythonImportedFuncDef
+    silent! syntax clear pythonImportedClassDef
+    silent! syntax clear pythonImportedModule
   endif
 
   let b:python_imports = imports
