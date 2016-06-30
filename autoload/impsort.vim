@@ -145,7 +145,7 @@ function! s:placement(import) abort
     " import ..module
     let module = substitute(a:import, '^\(\.\+\)', '\1/', '')
   else
-    let module = split(a:import, '\.')[0]
+    let module = split(a:import, '[. ]')[0]
   endif
 
   if module == '__future__'
