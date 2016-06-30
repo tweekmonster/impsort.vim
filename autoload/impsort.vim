@@ -7,8 +7,7 @@ let s:impsort_method_imports = ['alpha', 'length']
 " Prefix sort is undocumented!
 let s:impsort_method_prefix = ['depth', 'alpha']
 
-let s:import_single = '^\(\s*\)\<\%(import\|from\)\>.*\n\_^\%(\%(\s*\|\1\s\+.*\)\n\)*'
-let s:import_block = '\_^\(\s*\)\<\%(import\|from\)\> .\+\_$\%(\1\_s\+\_^\s\+.\+\)*'
+let s:import_single = '^\(\s*\)\<\%(import\|from\)\>.*\n\_^\%(\%(\%(\s*)\)\?\s*\|\1\s\+.*\)\n\)*'
 
 
 function! impsort#get_config(name, default) abort
@@ -39,29 +38,39 @@ function! s:init() abort
 endfunction
 
 
+" Helper for combining import blocks
+function! s:add_block(blocks, line1, line2) abort
+  if len(a:blocks) && a:line1 - a:blocks[-1][1] == 1
+    let a:blocks[-1][1] = a:line2
+  else
+    call add(a:blocks, [a:line1, a:line2])
+  endif
+endfunction
+
+
 " Determine the script regions that are import lines, grouped together.
 function! s:import_regions() abort
   let saved = winsaveview()
   keepjumps normal! gg
   let blocks = []
-  let last = prevnonblank(search(s:import_block, 'ncW') - 1) + 1
+  let last = prevnonblank(search(s:import_single, 'ncW') - 1) + 1
   let first_import = last
   let last_start = last
   let guard = 0
 
   while guard < 100
-    let start = search(s:import_block, 'W')
+    let start = search(s:import_single, 'W')
     if !start
-      if last != last_start || (last == first_import && getline(first_import) =~# s:import_block)
-        call add(blocks, [last_start, last])
+      if last != last_start || (last == first_import && getline(first_import) =~# s:import_single)
+        call s:add_block(blocks, last_start, last)
       endif
       break
     endif
-    let end = search(s:import_block, 'eW')
+    let end = search(s:import_single, 'eW')
     let prev = prevnonblank(max([first_import, start - 1]))
 
     if prev != last && join(getline(last_start, last), '') !~# '^\s*$'
-      call add(blocks, [last_start, last])
+      call s:add_block(blocks, last_start, last)
       let last_start = start
     endif
 
