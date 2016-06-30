@@ -46,48 +46,35 @@ function! s:init() abort
 endfunction
 
 
-" Helper for combining import blocks
-function! s:add_block(blocks, line1, line2) abort
-  if len(a:blocks) && a:line1 - a:blocks[-1][1] == 1
-    let a:blocks[-1][1] = a:line2
-  else
-    call add(a:blocks, [a:line1, a:line2])
-  endif
-endfunction
-
-
 " Determine the script regions that are import lines, grouped together.
 function! s:import_regions() abort
   let saved = winsaveview()
   keepjumps normal! gg
-  let blocks = []
-  let last = prevnonblank(search(s:import_single, 'ncW') - 1) + 1
-  let first_import = last
-  let last_start = last
+  let regions = []
   let guard = 0
+  let last_end = -1
 
   while guard < 100
-    let start = search(s:import_single, 'cW')
-    if !start
-      if last != last_start || (last == first_import && getline(first_import) =~# s:import_single)
-        call s:add_block(blocks, last_start, last)
+    let end = search(s:import_single, 'eW')
+    let start = search(s:import_single, 'nbW')
+
+    if start && end && end != last_end
+      if !empty(regions) && start - regions[-1][1] == 1
+        let regions[-1][1] = end
+      else
+        call add(regions, [start, end])
       endif
+      call cursor(end + 1, 1)
+    else
       break
     endif
-    let end = search(s:import_single, 'eW')
-    let prev = prevnonblank(max([first_import, start - 1]))
-
-    if prev != last && join(getline(last_start, last), '') !~# '^\s*$'
-      call s:add_block(blocks, last_start, last)
-      let last_start = start
-    endif
-
-    let last = end
+    
+    let last_end = end
     let guard += 1
   endwhile
 
   call winrestview(saved)
-  return blocks
+  return regions
 endfunction
 
 
