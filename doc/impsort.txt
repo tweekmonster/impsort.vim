@@ -32,6 +32,7 @@ CONTENTS                                                     *impsort-contents*
   Highlighting          |impsort-highlight|
   Sorting               |impsort-sorting|
   Notable behavior      |impsort-notes|
+    Formatting          |impsort-formatting|
   License               |impsort-license|
 
 ==============================================================================
@@ -96,18 +97,27 @@ g:impsort_relative_last		If enabled, relative imports will be moved to
 						 *g:impsort_line_continuation*
 g:impsort_line_continuation     If enabled, uses line continuations instead of
 				parenthesis for wrapping import lines.
+				See: |impsort-formatting|
 
 				Default: `0`
 
 						 *g:impsort_default_textwidth*
 g:impsort_textwidth		The number of characters before wrapping an
 				import line.
+				See: |impsort-formatting|
 
 				Default: |'textwidth'| or `79`
 
 				Note: If set to an empty value, |'textwidth'|
 				will be used.  If |'textwidth'| is also an
 				empty value, `79` will be used.
+
+						    *g:impsort_start_nextline*
+g:impsort_start_nextline	If enabled, starts imported module names will
+				start on the next line on "from...import"
+				See: |impsort-formatting|
+
+				Default: `0`
 
 					       *g:impsort_override_formatexpr*
 g:impsort_override_formatexpr	If enabled, overrides the formatexpr while
@@ -380,6 +390,56 @@ parenthesis that you may have yanked from another file.  Simply adding them
 then sorting will be enough.  Additionally, with |:ImpSortAuto| enabled, the
 line will be cleaned up and sorted automatically upon |InsertLeave|.
 
+
+							  *impsort-formatting*
+Formatting~
+
+While limited, there are a few options that can help you maintain consistency
+in existing code.
+
+|g:impsort_line_continuation|
+
+By default, |impsort| uses the parenthetical style for wrapping import lines.
+This causes line continuation slashes to be used instead.
+
+Example: >
+
+  from module import LongImport1, LongImport2
+<
+After wrapping: >
+  from module import LongImport1, \
+      LongImport2
+<
+
+|g:impsort_textwidth|
+
+Import lines are wrapped if they exceed a certain length.  By default,
+|'textwidth'| is used.  You can use |g:impsort_textwidth| to set a textwidth
+just for imports.  If a name would cause the line to exceed the width, a new
+line is added.  If you want to have one import name per line, you can set this
+to a low value (e.g. `1`).
+
+Regardless of what this is set to, wrapped lines are always indented.
+
+|g:impsort_start_nextline|
+
+If this option is enabled, imports that would wrap start on the line
+immediately after the import line.  For example: >
+
+  from module import LongImport1
+<
+After wrapping: >
+
+  # This will also cause a blank line to be added
+  # after the closing parenthesis.
+  from module import (
+      LongImport1
+  )
+
+  # if g:impsort_line_continuation is enabled
+  from module import \
+      LongImport1
+<
 
 ==============================================================================
 LICENSE                                                       *impsort-license*
