@@ -388,6 +388,14 @@ function! s:wrap_imports(from, imports) abort
   let slash_wrap = impsort#get_config('line_continuation', 0)
   let width = len(a:from)
   let textwidth = impsort#get_config('textwidth', &l:textwidth ? &l:textwidth : 79)
+  let start_nextline = impsort#get_config('start_nextline', 0)
+  let indent_width = &l:shiftwidth
+  if !&l:expandtab
+    let indent_text = "\t"
+    let indent_width = 1
+  else
+    let indent_text = repeat(' ', indent_width)
+  endif
 
   let remainder = textwidth - width
   if len(a:imports) < remainder
@@ -403,39 +411,67 @@ function! s:wrap_imports(from, imports) abort
 
   if slash_wrap
     let l = 0
-    let width = 4
+    let width = indent_width
+    if start_nextline
+      let out .= "\\\n".indent_text
+      let remainder = textwidth - indent_width
+    endif
+
     for import in imports
       let l1 = len(import) + 1
-      if l + l1 > remainder
+      if l > 0 && l + l1 > remainder
         if empty(out)
           let out = '\'
         else
           let out = out[:-2].' \'
         endif
-        let out .= "\n".repeat(' ', width)
+        let out .= "\n".indent_text
         let l = 0
-        let remainder = textwidth - 4
+        let remainder = textwidth - indent_width
       endif
       let l += l1
       let out .= import.' '
     endfor
+
+    let out = out[:-2]
   else
     let l = 1
     let out .= '('
-    let remainder += 1
+    if start_nextline
+      let out .= "\n".indent_text
+      let remainder = textwidth - indent_width
+      let indent = indent_width
+    else
+      let remainder += 1
+      let indent = width / &l:shiftwidth
+      let tail = ''
+      if indent_text == "\t"
+        let tail = repeat(' ', width - (indent * &l:shiftwidth) + 1)
+      else
+        let tail = repeat(' ', width - len(repeat(indent_text, indent)) + 1)
+      endif
+    endif
+
     for import in imports
       let l1 = len(import) + 1
       if l > 1 && l + l1 > remainder
         let out = out[:-2]
-        let out .= "\n".repeat(' ', width + 1)
+        let out .= "\n".repeat(indent_text, indent).tail
         let l = 0
       endif
       let l += l1
       let out .= import.' '
     endfor
+
+    let out = out[:-2]
+    if start_nextline
+      let out .= "\n)\n\n"
+    else
+      let out .= ')'
+    endif
   endif
 
-  return out[:-2].(slash_wrap ? '' : ')')
+  return out
 endfunction
 
 
