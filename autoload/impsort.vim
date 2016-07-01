@@ -387,8 +387,9 @@ endfunction
 function! s:wrap_imports(from, imports) abort
   let slash_wrap = impsort#get_config('line_continuation', 0)
   let width = len(a:from)
+  let textwidth = impsort#get_config('textwidth', &l:textwidth ? &l:textwidth : 79)
 
-  let remainder = &l:textwidth - width
+  let remainder = textwidth - width
   if len(a:imports) < remainder
     return a:imports
   endif
@@ -413,7 +414,7 @@ function! s:wrap_imports(from, imports) abort
         endif
         let out .= "\n".repeat(' ', width)
         let l = 0
-        let remainder = &l:textwidth - 4
+        let remainder = textwidth - 4
       endif
       let l += l1
       let out .= import.' '

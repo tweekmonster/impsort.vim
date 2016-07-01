@@ -99,6 +99,16 @@ g:impsort_line_continuation     If enabled, uses line continuations instead of
 
 				Default: `0`
 
+						 *g:impsort_default_textwidth*
+g:impsort_textwidth		The number of characters before wrapping an
+				import line.
+
+				Default: |'textwidth'| or `79`
+
+				Note: If set to an empty value, |'textwidth'|
+				will be used.  If |'textwidth'| is also an
+				empty value, `79` will be used.
+
 					       *g:impsort_override_formatexpr*
 g:impsort_override_formatexpr	If enabled, overrides the formatexpr while
 				typing on an import line.  Since |impsort|
