@@ -2,7 +2,7 @@
 
 Vim utility for sorting and highlighting Python imports.
 
-![impsort](https://cloud.githubusercontent.com/assets/111942/16325917/439b859e-3990-11e6-9f25-45552641c0df.gif)
+![impsort](https://cloud.githubusercontent.com/assets/111942/16569183/4889178c-4201-11e6-8a05-917a084f10bd.gif)
 
 ## Installation
 
