@@ -6,7 +6,9 @@ Vim utility for sorting and highlighting Python imports.
 
 ## Installation
 
-Any modern plugin manager will work.
+Any modern plugin manager will work.  If you are installing manually, you will
+have to run `git submodule update --init` since [Jedi][] is included as a
+submodule.
 
 ## Usage
 
@@ -30,11 +32,18 @@ Or use a keymap:
 nnoremap <leader>is :<c-u>ImpSort!<cr>
 ```
 
-The sorting method is configurable.  Be sure to read [`:h impsort`](doc/impsort.txt)!
+The sorting method is configurable.  Be sure to read [`:h impsort`][doc]!
 
 There is another command `:ImpSortAuto` which will automatically sort imports
-on `InsertLeave`.  **Definitely** read [`:h impsort`](doc/impsort.txt) if this
+on `InsertLeave`.  **Definitely** read [`:h impsort`][doc] if this
 interests you.
+
+### Highlighting
+
+By default, imported objects will be highlighted.  If your version of Vim is
+capable of asynchronous calls (Neovim and Vim 8), the highlighting will
+distinguish imported classes and functions.  You can read about customizing the
+colors in the [documentation][doc].
 
 ## Rationale
 
@@ -75,27 +84,6 @@ sys.path.insert(0, 'special/path')
 import special
 ```
 
-## License
-
-The MIT License
-Copyright (c) 2016 Tommy Allen
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
+[doc]: doc/impsort.txt
+[Jedi]: https://github.com/davidhalter/jedi
 [isort]: https://github.com/timothycrosley/isort/
