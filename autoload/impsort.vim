@@ -48,6 +48,9 @@ endfunction
 
 " Determine the script regions that are import lines, grouped together.
 function! s:import_regions() abort
+  let scrollbind = &l:scrollbind
+  let &l:scrollbind = 0
+
   let saved = winsaveview()
   keepjumps normal! gg
   let regions = []
@@ -74,6 +77,7 @@ function! s:import_regions() abort
   endwhile
 
   call winrestview(saved)
+  let &l:scrollbind = scrollbind
   return regions
 endfunction
 
