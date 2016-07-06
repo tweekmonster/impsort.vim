@@ -970,7 +970,13 @@ function! s:do_async_job(cmd, input, ...) abort
     " The calling function must check async capabilities before calling.  If
     " we got this far, it means the caller allowed it.
     let strcmd = join(map(copy(a:cmd), 'shellescape(v:val)'), ' ')
-    let imports = split(system(strcmd, a:input), "\n")
+    let input = join(a:input, "\n")
+    if empty(input)
+      let imports = split(system(strcmd), "\n")
+    else
+      let imports = split(system(strcmd, input), "\n")
+    endif
+
     if !empty(imports)
       call call('s:highlight', [imports] + a:000)
     endif
