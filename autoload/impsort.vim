@@ -669,6 +669,9 @@ function! impsort#sort(line1, line2, separate_groups) abort
     return
   endif
 
+  let foldenable = &l:foldenable
+  let &l:foldenable = 0
+
   let s:separate_groups = a:separate_groups
   let saved = winsaveview()
 
@@ -692,6 +695,7 @@ function! impsort#sort(line1, line2, separate_groups) abort
     endfor
   endif
 
+  let &l:foldenable = foldenable
   call winrestview(saved)
 endfunction
 
