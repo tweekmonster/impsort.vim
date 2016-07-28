@@ -88,8 +88,11 @@ endfunction
 
 
 " Clean string of characters that are not relevant to impsort.vim
+" Returns the comment, if any, on the line.  The comment delimiter is kept.
 function! s:clean(s) abort
-  return s:trim(substitute(a:s, '\c[^a-z0-9_\-.*]\+', ' ', 'g'))
+  let import_line = matchstr(a:s, '^[^#]*')
+  let comment = matchstr(a:s, '#.*$')
+  return [s:trim(substitute(import_line, '\c[^a-z0-9_\-.*]\+', ' ', 'g')), comment]
 endfunction
 
 
@@ -249,7 +252,27 @@ endfunction
 
 
 function! s:_sort(a, b) abort
-  let args = [a:a, a:b]
+  let a = a:a
+  let b = a:b
+
+  " Strip comments from the compared strings.  If the string is a comment,
+  " return immediately to move it to the end.
+  if a:a =~# '#'
+    if a:a[0] == '#'
+      return 1
+    endif
+
+    let a = matchstr(a:a, '\S*\ze\s*#')
+  endif
+
+  if a:b =~# '#'
+    if a:b[0] == '#'
+      return -1
+    endif
+    let b = matchstr(a:b, '\S*\ze\s*#')
+  endif
+
+  let args = [a, b]
   for s:_sfunc in s:_sort_methods
     let order = call(s:_sfunc, args)
     if order != 0
@@ -486,11 +509,14 @@ function! impsort#get_imports(line1, line2) abort
     let imports[placement] = {'import': [], 'from': {}}
   endfor
 
-  for imp in s:normalize_imports(a:line1, a:line2)
+  for [imp, comment] in s:normalize_imports(a:line1, a:line2)
     if imp =~# '^import '
       for import in s:parse_imports(s:trim(imp[6:]))
         let placement = s:placement(import)
-        call add(imports[placement]['import'], import)
+        if !empty(comment)
+          let import .= '  '.comment
+        endif
+        call s:uniqadd(imports[placement]['import'], import)
       endfor
     elseif imp =~# '^from '
       let parts = split(imp[4:], '\<import\>')
@@ -499,13 +525,17 @@ function! impsort#get_imports(line1, line2) abort
       endif
       let module = s:trim(parts[0])
       let placement = s:placement(module)
+
+      if !has_key(imports[placement]['from'], module)
+        let imports[placement]['from'][module] = []
+      endif
+
+      if !empty(comment)
+        call s:uniqadd(imports[placement]['from'][module], comment)
+      endif
+
       for import in s:parse_imports(s:trim(parts[1]))
-        if !has_key(imports[placement]['from'], module)
-          let imports[placement]['from'][module] = []
-        endif
-        if index(imports[placement]['from'][module], import) == -1
-          call add(imports[placement]['from'][module], import)
-        endif
+        call s:uniqadd(imports[placement]['from'][module], import)
       endfor
     endif
   endfor
@@ -629,7 +659,7 @@ function! s:_sort_range(line1, line2) abort
     endif
   endif
 
-  return import_lines
+  return map(import_lines, 'substitute(v:val, '', #'', ''  #'', ''g'')')
 endfunction
 
 
