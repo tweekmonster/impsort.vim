@@ -7,7 +7,7 @@ syntax match impsortNonImport #\.\k\+# transparent contains=TOP,pythonAttribute,
 silent! syntax clear pythonInclude pythonImport
 syntax keyword pythonImport contained from
 syntax keyword pythonImport import
-syntax match pythonIncludeLine #\<from\s\+\S\+\># transparent contains=pythonImport
+syntax match pythonIncludeLine #\<from\s\+\S\+\s# transparent contains=pythonImport
 
 " Highlight links should cover both syntax sources without screwing up user
 " defined highlights
