@@ -62,6 +62,13 @@ function! s:import_regions() abort
     let start = search(s:import_single, 'nbW')
 
     if start && end && end != last_end
+      let text = join(getline(start, end), ' ')
+      if text =~# '^from\>' && text !~# '^from\s\+\S\+\s\+import\s\+\S\+'
+        let last_end = end
+        let guard += 1
+        continue
+      endif
+
       if !empty(regions) && start - regions[-1][1] == 1
         let regions[-1][1] = end
       else
