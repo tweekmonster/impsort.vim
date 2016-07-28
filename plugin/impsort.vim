@@ -5,3 +5,11 @@ highlight default link pythonImportedObject Keyword
 highlight default link pythonImportedFuncDef Function
 highlight default link pythonImportedClassDef Type
 highlight default link pythonImportedModule pythonImportedObject
+
+
+augroup impsort
+  autocmd!
+  autocmd WinEnter * if &filetype =~# '\<python\>' && exists('b:impsort_pending_hl') |
+        \   call call(b:impsort_pending_hl[0], b:impsort_pending_hl[1:]) |
+        \ endif
+augroup END

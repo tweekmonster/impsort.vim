@@ -921,20 +921,31 @@ function! s:async_finish(job) abort
 
   let data = s:job_data[a:job]
   let cur_buffer = bufnr('%')
+  let return_win = -1
 
   if cur_buffer != data.buffer
-    execute 'noautocmd keepalt buffer' data.buffer
+    let win = bufwinnr(data.buffer)
+    if win == -1
+      " Since the buffer isn't in a visible window, wait for it to come into
+      " view before updating the highlights.
+      call setbufvar(data.buffer, 'impsort_pending_hl', [function('s:async_finish'), a:job])
+      return
+    endif
+
+    let return_win = winnr()
+    execute 'noautocmd' win 'wincmd w'
   endif
 
   unlet! b:impsort_highlight_job
+  unlet! b:impsort_pending_hl
 
   if !empty(data.output)
     call call('s:highlight', [data.output] + data.hlargs)
   endif
   call remove(s:job_data, a:job)
 
-  if cur_buffer != bufnr('%')
-    execute 'noautocmd keepalt buffer' cur_buffer
+  if return_win != -1
+    execute 'noautocmd' return_win 'wincmd w'
   endif
 endfunction
 
@@ -1043,7 +1054,7 @@ endfunction
 function! impsort#highlight_imported(force) abort
   call s:init()
 
-  if exists('SessionLoad') || exists('b:impsort_highlight_job')
+  if exists('SessionLoad') || get(b:, 'impsort_highlight_job', -1) != -1
     return
   endif
 
