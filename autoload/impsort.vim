@@ -501,7 +501,7 @@ function! s:wrap_imports(from, imports) abort
 
     let out = out[:-2]
     if start_nextline
-      let out .= "\n)\n\n"
+      let out .= "\n)\n"
     else
       let out .= ')'
     endif
