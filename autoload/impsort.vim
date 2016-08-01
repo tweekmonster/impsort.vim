@@ -443,6 +443,7 @@ function! s:wrap_imports(from, imports) abort
   endif
 
   let out = ''
+  let tail = ''
 
   if slash_wrap
     let l = 0
