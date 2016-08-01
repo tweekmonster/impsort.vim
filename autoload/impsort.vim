@@ -451,8 +451,8 @@ function! s:wrap_imports(from, imports) abort
     let l = 0
     let width = indent_width
     if start_nextline
-      let out .= "\\\n".indent_text
-      let remainder = textwidth - indent_width
+      let out .= "\\\n".lead_indent.indent_text
+      let remainder = textwidth - indent_width - len(lead_indent)
     endif
 
     for import in imports
@@ -465,7 +465,7 @@ function! s:wrap_imports(from, imports) abort
         endif
         let out .= "\n".lead_indent.indent_text
         let l = 0
-        let remainder = textwidth - indent_width
+        let remainder = textwidth - indent_width - len(lead_indent)
       endif
       let l += l1
       let out .= import.' '
