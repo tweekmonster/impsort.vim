@@ -476,7 +476,7 @@ function! s:wrap_imports(from, imports) abort
     if start_nextline
       let out .= "\n".indent_text
       let remainder = textwidth - indent_width
-      let indent = indent_width
+      let indent = 1
     else
       let remainder += 1
       let indent = width / &l:shiftwidth
