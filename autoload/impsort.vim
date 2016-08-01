@@ -425,6 +425,8 @@ function! s:wrap_imports(from, imports) abort
   let textwidth = impsort#get_config('textwidth', &l:textwidth ? &l:textwidth : 79)
   let start_nextline = impsort#get_config('start_nextline', 0)
   let indent_width = &l:shiftwidth
+  let lead_indent = matchstr(a:from, '^\s*')
+
   if !&l:expandtab
     let indent_text = "\t"
     let indent_width = 1
@@ -461,7 +463,7 @@ function! s:wrap_imports(from, imports) abort
         else
           let out = out[:-2].' \'
         endif
-        let out .= "\n".indent_text
+        let out .= "\n".lead_indent.indent_text
         let l = 0
         let remainder = textwidth - indent_width
       endif
@@ -474,7 +476,7 @@ function! s:wrap_imports(from, imports) abort
     let l = 1
     let out .= '('
     if start_nextline
-      let out .= "\n".indent_text
+      let out .= "\n".lead_indent.indent_text
       let remainder = textwidth - indent_width
       let indent = 1
     else
@@ -492,7 +494,11 @@ function! s:wrap_imports(from, imports) abort
       let l1 = len(import) + 1
       if l > 1 && l + l1 > remainder
         let out = out[:-2]
-        let out .= "\n".repeat(indent_text, indent).tail
+        let out .= "\n"
+        if start_nextline
+          let out .= lead_indent
+        endif
+        let out .= repeat(indent_text, indent).tail
         let l = 0
       endif
       let l += l1
@@ -501,7 +507,7 @@ function! s:wrap_imports(from, imports) abort
 
     let out = out[:-2]
     if start_nextline
-      let out .= "\n)\n"
+      let out .= "\n".lead_indent.")\n"
     else
       let out .= ')'
     endif
