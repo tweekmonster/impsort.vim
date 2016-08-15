@@ -63,7 +63,8 @@ function! s:import_regions() abort
 
     if start && end && end != last_end
       let text = join(getline(start, end), ' ')
-      if text =~# '^\s*from\>' && text !~# '^\s*from\s\+\S\+\s\+import\s\+\S\+'
+      if text =~# ';.\+\.set_trace'
+            \ || (text =~# '^\s*from\>' && text !~# '^\s*from\s\+\S\+\s\+import\s\+\S\+')
             \ || synIDattr(synID(start, match(text, '\S\zs'), 1), 'name') != 'pythonImport'
         let last_end = end
         let guard += 1
