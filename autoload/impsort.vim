@@ -67,6 +67,7 @@ function! s:import_regions() abort
             \ || synIDattr(synID(start, match(text, '\S\zs'), 1), 'name') != 'pythonImport'
         let last_end = end
         let guard += 1
+        call cursor(end + 1, 1)
         continue
       endif
 
