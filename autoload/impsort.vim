@@ -1076,7 +1076,11 @@ function! impsort#highlight_imported(force) abort
     for [l1, l2] in s:import_regions()
       call extend(lines, map(getline(l1, l2), 'substitute(v:val, ''^\s*'', '''', ''g'')'))
     endfor
-    call s:do_async_job([s:python_bin(), s:import_script, expand('%')], lines)
+    if !empty(lines)
+      call s:do_async_job([s:python_bin(), s:import_script, expand('%')], lines)
+    else
+      call s:highlight([])
+    endif
   else
     let [imports, star_modules] = impsort#get_all_imported()
     call s:highlight(imports)
