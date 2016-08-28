@@ -915,7 +915,7 @@ function! s:highlight(imports, ...) abort
     call reverse(sort(v, 's:__length_cmp'))
 
     if k =~# '_dotted$'
-      execute 'syntax match' group '#\<\%('.join(v, '\|').'\)\>#'
+      execute 'syntax match' group '#\<\%('.escape(join(v, '\|'), '.#').'\)\>#'
     else
       execute 'syntax keyword' group join(v, ' ')
     endif
