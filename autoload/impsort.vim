@@ -872,6 +872,10 @@ function! s:highlight(imports, ...) abort
         \ }
 
   for import in imports
+    if empty(import)
+      continue
+    endif
+
     if import =~# ','
       let [name, type] = split(import, ',\ze[^,]\+$')
 
