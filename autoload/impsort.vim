@@ -10,7 +10,14 @@ let s:impsort_method_prefix = ['depth', 'alpha']
 let s:has_async = exists('*jobstart') || exists('*job_start')
 let s:job_data = {}
 
-let s:import_single = '\C^\(\s*\)\<\%(import\|from\)\>.*\n\_^\%(\%(\%(\s*)\)\?\s*\|\1\s\+.*\)\n\)*'
+" Note: The atom \%(\s*)\) is matching an end paren below.  It's not
+" unbalanced.
+let s:import_single = '\C'
+      \.'^\(\s*\)\<\%(import\|from\)\>.*\n'
+      \.'\%('
+      \.  '\%(\s*\<\%(import\|from\)\>\)\@!'
+      \.  '\%(\%(\s*)\)\?\s*\|\1\s\+.*\)\n'
+      \.'\)*'
 
 
 function! s:python_bin() abort
