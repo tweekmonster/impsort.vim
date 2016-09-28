@@ -702,7 +702,12 @@ function! s:sort_range(line1, line2) abort
   if string(existing) != string(import_lines)
     " Only update if it changes something
     silent execute a:line1.','.a:line2.'delete _'
+    let delete_last = line('$') == 1
     call append(a:line1 - 1, import_lines)
+    if delete_last
+      " append() on an empty buffer causes a blank line to be added to the end.
+      $delete
+    endif
   endif
 
   return a:line2 - (a:line1 + len(import_lines) - 1)
