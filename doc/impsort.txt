@@ -179,6 +179,13 @@ g:impsort_allow_slow_parse	If enabled, a more accurate, but slower import
 				If asynchronous calls are not available, there
 				will be a significant delay while editing.
 
+g:impsort_lines_after_imports	The number of blank lines that should follow a
+				set of imports.  Imports preceeding module
+				functions and classes will always be followed
+				by two blank lines.
+
+				Default: `1` (minimum)
+
 
 Sort customization ~
 

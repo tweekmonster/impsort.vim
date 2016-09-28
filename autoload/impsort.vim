@@ -678,8 +678,17 @@ function! s:_sort_range(line1, line2) abort
     let text = getline(nextline)
     if !nextline || text =~# '^except ImportError'
       let import_lines = import_lines[:-2]
-    elseif !line_indent && text =~# '^\s*\%(def\|class\)\>'
-      call add(import_lines, '')
+    elseif !line_indent
+      let n_lines = max([1, impsort#get_config('lines_after_imports', 1) + 0]) - 1
+
+      if text =~# '^@.\+\|\%(def\|class\)\>'
+        call add(import_lines, '')
+        let n_lines -= 1
+      endif
+
+      if n_lines > 0
+        call extend(import_lines, repeat([''], n_lines))
+      endif
     endif
   endif
 
