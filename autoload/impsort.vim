@@ -59,7 +59,7 @@ function! s:import_regions() abort
   let &l:scrollbind = 0
 
   let saved = winsaveview()
-  keepjumps normal! gg
+  call cursor(1, 1)
   let regions = []
   let guard = 0
   let last_end = -1
