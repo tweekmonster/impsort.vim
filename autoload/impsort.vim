@@ -676,7 +676,7 @@ function! s:_sort_range(line1, line2) abort
   let nextline = nextnonblank(a:line2 + 1)
   if len(import_lines)
     let text = getline(nextline)
-    if !nextline || text =~# '^\s*except ImportError'
+    if !nextline || text =~# '^\s*except\>'
       let import_lines = import_lines[:-2]
     elseif !line_indent
       let n_lines = max([1, impsort#get_config('lines_after_imports', 1) + 0]) - 1
