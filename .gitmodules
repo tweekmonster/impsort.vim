@@ -1,3 +1,6 @@
 [submodule "bin/jedi"]
 	path = bin/jedi
 	url = https://github.com/davidhalter/jedi.git
+[submodule "bin/parso"]
+	path = bin/parso
+	url = https://github.com/davidhalter/parso.git
