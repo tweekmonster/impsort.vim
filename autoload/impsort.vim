@@ -973,8 +973,17 @@ function! s:async_finish(job) abort
   unlet! b:impsort_highlight_job
   unlet! b:impsort_pending_hl
 
-  if !empty(data.output)
-    call call('s:highlight', [data.output] + data.hlargs)
+  if !empty(data.stderr) && join(data.stderr, '') !~# '^\s*$'
+    echohl ErrorMsg
+    for line in data.stderr
+      echomsg '[impsort]' line
+    endfor
+    echohl None
+    redraw
+  endif
+
+  if !empty(data.stdout)
+    call call('s:highlight', [data.stdout] + data.hlargs)
   endif
   call remove(s:job_data, a:job)
 
@@ -988,14 +997,9 @@ function! s:async_nvim_handler(job, data, event) abort
   if a:event == 'exit'
     call s:async_finish(a:job)
   elseif a:event == 'stderr'
-    echohl ErrorMsg
-    for line in a:data
-      echomsg '[impsort]' line
-    endfor
-    echohl None
-    redraw
+    call extend(s:job_data[a:job].stderr, a:data)
   elseif a:event == 'stdout'
-    call extend(s:job_data[a:job].output, a:data)
+    call extend(s:job_data[a:job].stdout, a:data)
   endif
 endfunction
 
@@ -1006,17 +1010,14 @@ function! s:async_vim_close(channel) abort
 
   while ch_status(a:channel) == 'buffered'
     try
-      call add(s:job_data[job].output, ch_read(a:channel))
+      call add(s:job_data[job].stdout, ch_read(a:channel))
     catch //
     endtry
 
     " Todo: Find out if this is stupid because it feels stupid.
-    echohl ErrorMsg
     try
-      echomsg '[impsort]' ch_read(a:channel, {'part': 'err'})
+      call add(s:job_data[job].stderr, ch_read(a:channel, {'part': 'err'}))
     catch //
-    finally
-      echohl None
     endtry
   endwhile
 
@@ -1028,7 +1029,8 @@ function! s:do_async_job(cmd, input, ...) abort
   let data = {
         \ 'buffer': bufnr('%'),
         \ 'hlargs': a:000,
-        \ 'output': [],
+        \ 'stdout': [],
+        \ 'stderr': [],
         \ }
 
   if has('nvim') && exists('*jobstart')
