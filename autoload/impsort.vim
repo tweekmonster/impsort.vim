@@ -180,7 +180,7 @@ function! s:placement(import) abort
     return 'internal'
   endif
 
-  for path in s:paths
+  for path in [expand('%:p:h')] + s:paths
     let mpath = path.'/'.module
     if filereadable(mpath.'.py')
           \ || filereadable(mpath.s:ext_suffix)
