@@ -973,9 +973,9 @@ function! s:async_finish(job) abort
   unlet! b:impsort_highlight_job
   unlet! b:impsort_pending_hl
 
-  if !empty(data.stderr) && join(data.stderr, '') !~# '^\s*$'
+  if !empty(data.stderr) && data.stderr !~# '^\s*$'
     echohl ErrorMsg
-    for line in data.stderr
+    for line in split(data.stderr, "\n")
       echomsg '[impsort]' line
     endfor
     echohl None
@@ -983,7 +983,7 @@ function! s:async_finish(job) abort
   endif
 
   if !empty(data.stdout)
-    call call('s:highlight', [data.stdout] + data.hlargs)
+    call call('s:highlight', [split(data.stdout, "\n")] + data.hlargs)
   endif
   call remove(s:job_data, a:job)
 
@@ -997,9 +997,9 @@ function! s:async_nvim_handler(job, data, event) abort
   if a:event == 'exit'
     call s:async_finish(a:job)
   elseif a:event == 'stderr'
-    call extend(s:job_data[a:job].stderr, a:data)
+    let s:job_data[a:job].stderr .= join(a:data, "\n")
   elseif a:event == 'stdout'
-    call extend(s:job_data[a:job].stdout, a:data)
+    let s:job_data[a:job].stdout .= join(a:data, "\n")
   endif
 endfunction
 
@@ -1010,13 +1010,13 @@ function! s:async_vim_close(channel) abort
 
   while ch_status(a:channel) == 'buffered'
     try
-      call add(s:job_data[job].stdout, ch_read(a:channel))
+      let s:job_data[job].stdout .= ch_read(a:channel)
     catch //
     endtry
 
     " Todo: Find out if this is stupid because it feels stupid.
     try
-      call add(s:job_data[job].stderr, ch_read(a:channel, {'part': 'err'}))
+      let s:job_data[job].stderr .= ch_read(a:channel, {'part': 'err'})
     catch //
     endtry
   endwhile
@@ -1029,8 +1029,8 @@ function! s:do_async_job(cmd, input, ...) abort
   let data = {
         \ 'buffer': bufnr('%'),
         \ 'hlargs': a:000,
-        \ 'stdout': [],
-        \ 'stderr': [],
+        \ 'stdout': '',
+        \ 'stderr': '',
         \ }
 
   if has('nvim') && exists('*jobstart')
