@@ -34,6 +34,33 @@ function! impsort#get_config(name, default) abort
 endfunction
 
 
+function! s:print_error(msg) abort
+  echohl ErrorMsg
+  for line in split(a:msg, "\n")
+    echomsg '[impsort]' line
+  endfor
+  echohl None
+  redraw
+endfunction
+
+
+function s:system(cmd, input) abort
+  if !empty(a:input)
+    let output = system(a:cmd)
+  else
+    let output = system(a:cmd, a:input)
+  endif
+
+  if v:shell_error != 0
+    let s:paths = []
+    call s:print_error(output)
+    return ''
+  endif
+
+  return output
+endfunction
+
+
 " Call the python script to get the environment python interpreter's info.
 function! s:init() abort
   if exists('s:paths')
@@ -41,7 +68,7 @@ function! s:init() abort
   endif
   let py = s:python_bin()
 
-  for line in split(system(printf('%s "%s"', py, s:path_script)), "\n")
+  for line in split(s:system(printf('%s "%s"', py, s:path_script), ''), "\n")
     let i = stridx(line, '=')
     let name = line[:i-1]
     if name == 'ext_suffix'
@@ -974,12 +1001,7 @@ function! s:async_finish(job) abort
   unlet! b:impsort_pending_hl
 
   if !empty(data.stderr) && data.stderr !~# '^\s*$'
-    echohl ErrorMsg
-    for line in split(data.stderr, "\n")
-      echomsg '[impsort]' line
-    endfor
-    echohl None
-    redraw
+    call s:print_error(data.stderr)
   endif
 
   if !empty(data.stdout)
@@ -1064,11 +1086,7 @@ function! s:do_async_job(cmd, input, ...) abort
     " we got this far, it means the caller allowed it.
     let strcmd = join(map(copy(a:cmd), 'shellescape(v:val)'), ' ')
     let input = join(a:input, "\n")
-    if empty(input)
-      let imports = split(system(strcmd), "\n")
-    else
-      let imports = split(system(strcmd, input), "\n")
-    endif
+    let imports = split(s:system(strcmd, input), "\n")
 
     if !empty(imports)
       call call('s:highlight', [imports] + a:000)
