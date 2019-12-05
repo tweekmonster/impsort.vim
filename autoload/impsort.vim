@@ -80,6 +80,12 @@ function! s:init() abort
 endfunction
 
 
+function! s:is_indented_statement(text) abort
+  let s = matchstr(a:text, '^\s*\(from\s\+\S\+\s\+\)\=import\>')
+  return s != '' && s == s:trim(s)
+endfunction
+
+
 " Determine the script regions that are import lines, grouped together.
 function! s:import_regions() abort
   let scrollbind = &l:scrollbind
@@ -91,6 +97,7 @@ function! s:import_regions() abort
   let guard = 0
   let last_end = -1
   let skip_comments = impsort#get_config('skip_comments', 0)
+  let indented = -1
 
   while guard < 100
     let end = search(s:import_single, 'eW')
@@ -168,8 +175,8 @@ function! s:normalize_imports(line1, line2) abort
 
     let p = matchstr(l, '^\s*\(from\s\+\S\+\s\+\)\=import\>')
     if p != ''
-      let prefix = p . ' '
-      let l = matchstr(l, '.*', strlen(prefix))
+      let prefix = s:trim(p) . ' '
+      let l = matchstr(l, '.*', strlen(p))
     else
     endif
 
