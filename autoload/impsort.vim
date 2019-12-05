@@ -90,12 +90,21 @@ function! s:import_regions() abort
   let regions = []
   let guard = 0
   let last_end = -1
+  let skip_comments = impsort#get_config('skip_comments', 0)
 
   while guard < 100
     let end = search(s:import_single, 'eW')
     let start = search(s:import_single, 'nbW')
 
     if start && end && end != last_end
+      if skip_comments && join(getline(start, end)) =~# '#'
+        call add(regions, [start, end])
+        let last_end = end
+        let guard += 1
+        call cursor(end + 1, 1)
+        continue
+      endif
+
       let text = join(getline(start, end), ' ')
       if text =~# ';.\+\.set_trace'
             \ || (text =~# '^\s*from\>' && text !~# '^\s*from\s\+\S\+\s\+import\s\+\S\+')
@@ -107,6 +116,7 @@ function! s:import_regions() abort
       endif
 
       if !empty(regions) && start - regions[-1][1] == 1
+            \ && (!skip_comments || join(getline(regions[-1][0], regions[-1][1])) !~# '#')
         let regions[-1][1] = end
       else
         call add(regions, [start, end])
@@ -131,15 +141,6 @@ function! s:trim(s) abort
 endfunction
 
 
-" Clean string of characters that are not relevant to impsort.vim
-" Returns the comment, if any, on the line.  The comment delimiter is kept.
-function! s:clean(s) abort
-  let import_line = matchstr(a:s, '^[^#]*')
-  let comment = matchstr(a:s, '#.*$')
-  return [s:trim(substitute(import_line, '\c[^a-z0-9_\-.*]\+', ' ', 'g')), comment]
-endfunction
-
-
 function! s:uniqadd(obj, item) abort
   if index(a:obj, a:item) == -1
     call add(a:obj, a:item)
@@ -147,26 +148,42 @@ function! s:uniqadd(obj, item) abort
 endfunction
 
 
-" Normalize the import lines by cleaning text and joining over-indented lines
-" to the previous import line.
+" Normalize import lines and preserve comments.  Multi-line imports are
+" normalized to look like individual import lines.  For example:
+" from module import (m1,  #noqa
+"                     m2)
+" Will normalize to:
+"
+" from module import m1 #noqa
+" from module import m2
 function! s:normalize_imports(line1, line2) abort
   let lines = []
   let ind = -1
+  let prefix = ''
+
   for l in getline(a:line1, a:line2)
     if l =~ '^\s*$'
       continue
     endif
 
-    let l_ind = matchend(l, '^\s*\S')
-    if l !~# '^\s*\%(import\|from\)' && ind != -1 && l_ind > ind
-      let lines[-1] .= l
+    let p = matchstr(l, '^\s*\(from\s\+\S\+\s\+\)\=import\>')
+    if p != ''
+      let prefix = p . ' '
+      let l = matchstr(l, '.*', strlen(prefix))
+    else
+    endif
+
+    let imp = s:trim(substitute(matchstr(l, '^[^#]*'),
+          \ '\c[^a-z0-9_\-.*]\+', ' ', 'g'))
+    if imp == ''
       continue
     endif
 
-    let ind = l_ind
-    call add(lines, l)
+    let comment = s:trim(matchstr(l, '#.*$'))
+    call add(lines, [prefix . imp, comment])
   endfor
-  return map(lines, 's:clean(v:val)')
+
+  return lines
 endfunction
 
 
@@ -581,11 +598,10 @@ function! impsort#get_imports(line1, line2) abort
         let imports[placement]['from'][module] = []
       endif
 
-      if !empty(comment)
-        call s:uniqadd(imports[placement]['from'][module], comment)
-      endif
-
       for import in s:parse_imports(s:trim(parts[1]))
+        if !empty(comment)
+          let import .= ', ' . comment
+        endif
         call s:uniqadd(imports[placement]['from'][module], import)
       endfor
     endif
@@ -689,10 +705,30 @@ function! s:_sort_range(line1, line2) abort
         continue
       endif
       let from_line = prefix.'from '.import.' import '
-      let from_imports = join(s:sort(imports[placement]['from'][import],
-            \ s:get_method('imports')), ', ')
-      let from_line .= s:wrap_imports(from_line, from_imports)
-      call extend(import_lines, split(from_line, "\n"))
+      let sorted_imports = s:sort(imports[placement]['from'][import],
+            \ s:get_method('imports'))
+      let commented = []
+      let uncommented = []
+
+      for imp in sorted_imports
+        if imp =~# '#'
+          call add(commented, imp)
+        else
+          call add(uncommented, imp)
+        endif
+      endfor
+
+      if !empty(uncommented)
+        let uc_line = from_line . s:wrap_imports(from_line, join(uncommented, ', '))
+        call extend(import_lines, split(uc_line, "\n"))
+      endif
+
+      if !empty(commented)
+        for imp in commented
+          let c_line = from_line . s:wrap_imports(from_line, imp)
+          call extend(import_lines, split(c_line, "\n"))
+        endfor
+      endif
     endfor
 
     if len(imports[placement]['from']) && import_lines[-1] != ''
@@ -724,8 +760,19 @@ endfunction
 
 
 function! s:sort_range(line1, line2) abort
-  let import_lines = s:_sort_range(a:line1, a:line2)
   let existing = getline(a:line1, a:line2)
+
+  if impsort#get_config('skip_comments', 0) && join(existing, ' ') =~# '#'
+    let l1 = nextnonblank(a:line1)
+    let l2 = prevnonblank(a:line2)
+    let import_lines = getline(l1, l2) + ['']
+    if prevnonblank(a:line1 - 1) > 1
+      call insert(import_lines, '', 0)
+    endif
+  else
+    let import_lines = s:_sort_range(a:line1, a:line2)
+  endif
+
   if string(existing) != string(import_lines)
     " Only update if it changes something
     silent execute a:line1.','.a:line2.'delete _'

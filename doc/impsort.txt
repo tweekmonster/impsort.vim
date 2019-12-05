@@ -179,12 +179,36 @@ g:impsort_allow_slow_parse	If enabled, a more accurate, but slower import
 				If asynchronous calls are not available, there
 				will be a significant delay while editing.
 
+						*g:impsort_lines_after_imports*
 g:impsort_lines_after_imports	The number of blank lines that should follow a
 				set of imports.  Imports preceeding module
 				functions and classes will always be followed
 				by two blank lines.
 
 				Default: `1` (minimum)
+
+						*g:impsort_skip_comments*
+g:impsort_skip_comments		By default, import statements with comments
+				are sorted and grouped below other imports
+				within its block, but are given their own
+				lines to preserve the comment.  If this isn't
+				desired, enabling this option will treat these
+				statements as ordinary text and skip them.
+
+				Default: `0`
+
+				Note: Enabling this option won't seem strange
+				for single line imports such as:
+>
+				from module import abcd  # noqa
+<
+				but might seem inconsistent when ignored here:
+>
+				from module import (
+				  efgh,
+				  abcd, # noqa
+				)
+<
 
 
 Sort customization ~
