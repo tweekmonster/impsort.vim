@@ -104,30 +104,27 @@ function! s:import_regions() abort
     let start = search(s:import_single, 'nbW')
 
     if start && end && end != last_end
-      if skip_comments && join(getline(start, end)) =~# '#'
-        call add(regions, [start, end])
-        let last_end = end
-        let guard += 1
-        call cursor(end + 1, 1)
-        continue
+      let text = join(getline(start, end), ' ')
+      let t_indented = s:is_indented_statement(text)
+      if indented == -1
+        let indented = t_indented
       endif
 
-      let text = join(getline(start, end), ' ')
       if text =~# ';.\+\.set_trace'
             \ || (text =~# '^\s*from\>' && text !~# '^\s*from\s\+\S\+\s\+import\s\+\S\+')
             \ || synIDattr(synID(start, match(text, '\S\zs'), 1), 'name') != 'pythonImport'
-        let last_end = end
-        let guard += 1
-        call cursor(end + 1, 1)
-        continue
-      endif
-
-      if !empty(regions) && start - regions[-1][1] == 1
+        " Skip lines that look like imports but aren't highlighted as such
+      elseif skip_comments && text =~# '#'
+        call add(regions, [start, end])
+      elseif !empty(regions) && start - regions[-1][1] == 1
             \ && (!skip_comments || join(getline(regions[-1][0], regions[-1][1])) !~# '#')
+            \ && (t_indented == indented)
         let regions[-1][1] = end
       else
         call add(regions, [start, end])
       endif
+
+      let indented = t_indented
       call cursor(end + 1, 1)
     else
       break
