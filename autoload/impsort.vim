@@ -683,24 +683,31 @@ function! s:_sort_range(line1, line2) abort
     call add(import_lines, '')
   endif
 
+  let separate_placement = impsort#get_config('separate_import_lines', 1)
+  let placement_lines = {}
+
   for placement in s:placements
+    if !has_key(placement_lines, placement)
+      let placement_lines[placement] = []
+    endif
+
     for import in s:sort_imports(imports[placement]['import'], 0)
       if import == ''
-        call add(import_lines, '')
+        call add(placement_lines[placement], '')
         continue
       endif
-      call add(import_lines, prefix.'import '.import)
+      call add(placement_lines[placement], prefix.'import '.import)
     endfor
 
-    if len(imports[placement]['import']) && import_lines[-1] != ''
-      call add(import_lines, '')
+    if len(imports[placement]['import']) && placement_lines[placement][-1] != ''
+      call add(placement_lines[placement], '')
     endif
 
     for import in s:sort_imports(keys(imports[placement]['from']),
           \ s:separate_groups)
       if !has_key(imports[placement]['from'], import)
         if import == ''
-          call add(import_lines, '')
+          call add(placement_lines[placement], '')
         endif
         continue
       endif
@@ -720,20 +727,31 @@ function! s:_sort_range(line1, line2) abort
 
       if !empty(uncommented)
         let uc_line = from_line . s:wrap_imports(from_line, join(uncommented, ', '))
-        call extend(import_lines, split(uc_line, "\n"))
+        call extend(placement_lines[placement], split(uc_line, "\n"))
       endif
 
       if !empty(commented)
         for imp in commented
           let c_line = from_line . s:wrap_imports(from_line, imp)
-          call extend(import_lines, split(c_line, "\n"))
+          call extend(placement_lines[placement], split(c_line, "\n"))
         endfor
       endif
     endfor
 
-    if len(imports[placement]['from']) && import_lines[-1] != ''
-      call add(import_lines, '')
+    if len(imports[placement]['from']) && placement_lines[placement][-1] != ''
+      call add(placement_lines[placement], '')
     endif
+  endfor
+
+  for placement in s:placements
+    let lines = placement_lines[placement]
+    if !separate_placement && !empty(lines)
+      let lines = filter(lines, 'v:val != ""') + ['']
+    endif
+
+    for line in lines
+      call add(import_lines, line)
+    endfor
   endfor
 
   let nextline = nextnonblank(a:line2 + 1)

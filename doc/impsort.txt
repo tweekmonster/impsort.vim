@@ -120,6 +120,13 @@ g:impsort_start_nextline	If enabled, starts wrapped imported module
 
 				Default: `0`
 
+					*g:impsort_separate_import_types*
+g:impsort_separate_import_types
+				Keep import statement types (`from ...` or
+				`import ...`) separated by a line.
+
+				Default: `1`
+
 					       *g:impsort_override_formatexpr*
 g:impsort_override_formatexpr	If enabled, overrides the formatexpr while
 				typing on an import line.  Since |impsort|
