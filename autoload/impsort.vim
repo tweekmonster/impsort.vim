@@ -210,12 +210,19 @@ function! s:parse_imports(imports) abort
 endfunction
 
 
+function! s:is_python_module(path) abort
+  return filereadable(a:path.'.py')
+        \ || filereadable(a:path.s:ext_suffix)
+        \ || (isdirectory(a:path) && filereadable(a:path.'/__init__.py'))
+endfunction
+
+
 " Determine the import placement.
 function! s:placement(import) abort
   if a:import =~ '^\.\+'
     " from . import module
     " import ..module
-    let module = substitute(a:import, '^\(\.\+\)', '\1/', '')
+    let module = substitute(a:import, '^\(\.\+\)\([^\.]\+\).*', '\1/\2', '')
   else
     let module = split(a:import, '[. ]')[0]
   endif
@@ -228,11 +235,12 @@ function! s:placement(import) abort
     return 'internal'
   endif
 
-  for path in [expand('%:p:h')] + s:paths
-    let mpath = path.'/'.module
-    if filereadable(mpath.'.py')
-          \ || filereadable(mpath.s:ext_suffix)
-          \ || (isdirectory(mpath) && filereadable(mpath.'/__init__.py'))
+  if s:is_python_module(expand('%:p:h') . '/' . module)
+    return 'project'
+  endif
+
+  for path in s:paths
+    if s:is_python_module(path.'/'.module)
       if path =~# '/site-packages$'
         return 'external'
       else
