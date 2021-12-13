@@ -27,8 +27,7 @@ def get_names(filename, source):
     # Workaround for forcing an empty function scope on Jedi
     source += '\n\ndef __impsort_fake__():\n    pass\n'
 
-    for c in jedi.Script(source, line=len(source.split('\n')), column=0,
-                         path=filename).completions():
+    for c in jedi.Script(source, path=filename).complete(line=len(source.split('\n')), column=0):
         if c.name == '__impsort_fake__' or c.is_keyword \
                 or c.in_builtin_module():
             continue
