@@ -113,10 +113,14 @@ g:impsort_textwidth		The number of characters before wrapping an
 				empty value, `79` will be used.
 
 						    *g:impsort_start_nextline*
-g:impsort_start_nextline	If enabled, starts wrapped imported module
-				names will start on the next line on
-				"from...import"
-				See: |impsort-formatting|
+g:impsort_start_nextline	If enabled, wrapped imported module names will
+				start on the next line after `from...import (`
+
+				If set to `2`, each module name will be on its
+				own line.  If you are also using Black, be
+				sure that its line length matches either
+				|'textwidth'| or |g:impsort_textwidth|
+				See: |impsort-formatting
 
 				Default: `0`
 

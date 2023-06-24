@@ -503,7 +503,7 @@ function! s:wrap_imports(from, imports) abort
     return a:imports
   endif
 
-  let imports = split(a:imports, ',\zs ')
+  let imports = start_nextline == 2 ? split(a:imports, ', ') : split(a:imports, ',\zs ')
   if len(imports) < 2
     return a:imports
   endif
@@ -511,7 +511,13 @@ function! s:wrap_imports(from, imports) abort
   let out = ''
   let tail = ''
 
-  if slash_wrap
+  if start_nextline == 2
+    let out .= "(\n" . lead_indent
+    for import in imports
+      let out .= indent_text . import . ",\n" . lead_indent
+    endfor
+    let out .= lead_indent.")\n"
+  elseif slash_wrap
     let l = 0
     let width = indent_width
     if start_nextline
