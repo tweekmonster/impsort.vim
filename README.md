@@ -4,6 +4,13 @@ Vim utility for sorting and highlighting Python imports.
 
 ![impsort](https://cloud.githubusercontent.com/assets/111942/16569183/4889178c-4201-11e6-8a05-917a084f10bd.gif)
 
+## Maintenance notice
+
+This plugin is in maintenance mode. I still personally use this plugin, but I
+would be more inclined to create a new plugin using [Tree-sitter][] (either
+through Neovim or cli subprocess) before I'd consider fixing an emergent bug in
+this plugin.
+
 ## Installation
 
 Any modern plugin manager will work.  If you are installing manually, you will
@@ -87,3 +94,4 @@ import special
 [doc]: doc/impsort.txt
 [Jedi]: https://github.com/davidhalter/jedi
 [isort]: https://github.com/timothycrosley/isort/
+[Tree-sitter]: https://tree-sitter.github.io/
