@@ -112,7 +112,6 @@ function! s:import_regions() abort
 
       if text =~# ';.\+\.set_trace'
             \ || (text =~# '^\s*from\>' && text !~# '^\s*from\s\+\S\+\s\+import\s\+\S\+')
-            \ || synIDattr(synID(start, match(text, '\S\zs'), 1), 'name') != 'pythonImport'
         " Skip lines that look like imports but aren't highlighted as such
       elseif skip_comments && text =~# '#'
         call add(regions, [start, end])
